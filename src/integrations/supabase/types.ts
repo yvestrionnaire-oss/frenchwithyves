@@ -14,16 +14,201 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      availability_rules: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          id: string
+          slot_time: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          id?: string
+          slot_time: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          id?: string
+          slot_time?: string
+        }
+        Relationships: []
+      }
+      lessons: {
+        Row: {
+          created_at: string
+          duration_minutes: number
+          id: string
+          scheduled_at: string
+          status: Database["public"]["Enums"]["lesson_status"]
+          student_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          scheduled_at: string
+          status?: Database["public"]["Enums"]["lesson_status"]
+          student_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          scheduled_at?: string
+          status?: Database["public"]["Enums"]["lesson_status"]
+          student_id?: string
+        }
+        Relationships: []
+      }
+      packages: {
+        Row: {
+          credits: number
+          currency: string
+          description: string
+          duration: string
+          id: string
+          is_active: boolean
+          is_free: boolean
+          is_recommended: boolean
+          name: string
+          price_cents: number
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          credits?: number
+          currency?: string
+          description?: string
+          duration: string
+          id?: string
+          is_active?: boolean
+          is_free?: boolean
+          is_recommended?: boolean
+          name: string
+          price_cents?: number
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          credits?: number
+          currency?: string
+          description?: string
+          duration?: string
+          id?: string
+          is_active?: boolean
+          is_free?: boolean
+          is_recommended?: boolean
+          name?: string
+          price_cents?: number
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
+      purchase_requests: {
+        Row: {
+          created_at: string
+          credits_granted: number
+          id: string
+          notes: string | null
+          package_id: string
+          paid_at: string | null
+          status: Database["public"]["Enums"]["purchase_status"]
+          student_id: string
+        }
+        Insert: {
+          created_at?: string
+          credits_granted?: number
+          id?: string
+          notes?: string | null
+          package_id: string
+          paid_at?: string | null
+          status?: Database["public"]["Enums"]["purchase_status"]
+          student_id: string
+        }
+        Update: {
+          created_at?: string
+          credits_granted?: number
+          id?: string
+          notes?: string | null
+          package_id?: string
+          paid_at?: string | null
+          status?: Database["public"]["Enums"]["purchase_status"]
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_requests_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      book_lesson: { Args: { _scheduled_at: string }; Returns: string }
+      credit_balance: { Args: { _user_id: string }; Returns: number }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "student" | "teacher"
+      lesson_status: "scheduled" | "completed" | "cancelled"
+      purchase_status: "pending" | "paid" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +335,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["student", "teacher"],
+      lesson_status: ["scheduled", "completed", "cancelled"],
+      purchase_status: ["pending", "paid", "cancelled"],
+    },
   },
 } as const
