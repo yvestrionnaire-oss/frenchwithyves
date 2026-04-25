@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BookOpen, CalendarDays, CheckCircle, CreditCard, Laptop, Mail, Star, Target, Users } from "lucide-react";
+import { BookOpen, CalendarDays, CheckCircle, CreditCard, Mail, Star, Target, Users } from "lucide-react";
 import portrait from "@/assets/yves-trionnaire-real.jpg";
 import introVideo from "@/assets/yves-introduction.mp4";
 
@@ -211,15 +211,40 @@ function StatCard({ icon, value, label }: { icon: React.ReactNode; value: string
   );
 }
 
-function FeatureCard({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
+function PackageCard({ lessons, pricePerLesson, discount, highlight }: { lessons: number; pricePerLesson: number; discount: number; highlight?: boolean }) {
+  const subtotal = lessons * pricePerLesson;
+  const total = subtotal * (1 - discount / 100);
+  const effective = total / lessons;
   return (
-    <div className="fw-card p-6">
-      <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-primary">{icon}</div>
-      <h3 className="font-bold">{title}</h3>
-      <p className="mt-2 text-sm leading-relaxed text-secondaryText">{children}</p>
+    <div className={`fw-card relative p-6 ${highlight ? "ring-2 ring-primary" : ""}`}>
+      {highlight && (
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">
+          Most popular
+        </span>
+      )}
+      <div className="mb-3 flex items-baseline justify-between">
+        <h3 className="text-lg font-bold">{lessons} {lessons === 1 ? "lesson" : "lessons"}</h3>
+        {discount > 0 && (
+          <span className="rounded-full bg-secondary px-2 py-1 text-xs font-bold text-primary">−{discount}%</span>
+        )}
+      </div>
+      <div className="flex items-baseline gap-1">
+        <span className="text-3xl font-bold">${total.toFixed(0)}</span>
+        <span className="text-sm text-secondaryText">total</span>
+      </div>
+      <p className="mt-1 text-sm text-secondaryText">
+        ${effective.toFixed(2)} / hour
+        {discount > 0 && <span className="ml-2 text-xs line-through">${subtotal}</span>}
+      </p>
+      <ul className="mt-4 space-y-2 text-sm text-secondaryText">
+        <li className="flex items-start gap-2"><CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> 1-hour private online lessons</li>
+        <li className="flex items-start gap-2"><CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> Shared Google Doc + PDF notes</li>
+        <li className="flex items-start gap-2"><CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> Flexible rescheduling by email</li>
+      </ul>
     </div>
   );
 }
+
 
 function StepCard({ n, title, icon, children }: { n: string; title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
