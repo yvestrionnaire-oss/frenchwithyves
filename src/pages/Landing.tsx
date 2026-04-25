@@ -121,7 +121,7 @@ export default function Landing() {
       <section id="book" className="app-container py-10">
         <h2 className="section-title mb-3 text-center">Book your lesson</h2>
         <p className="mx-auto mb-7 max-w-2xl text-center text-secondaryText">
-          Pick a time that suits you. After you book, I'll email you a payment link. Your slot is confirmed once payment is received.
+          Pick a time that suits you. After you book, I'll email you a payment link. Your slot is confirmed once payment is received. The <strong>Google Meet link</strong> for our class will be sent to you by email <strong>5 minutes before</strong> the lesson starts.
         </p>
         <div className="fw-card overflow-hidden">
           <div
