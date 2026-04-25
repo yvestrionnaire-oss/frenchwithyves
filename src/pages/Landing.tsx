@@ -1,22 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { BookOpen, CalendarDays, CheckCircle, CreditCard, Mail, Star, Target, Users } from "lucide-react";
 import portrait from "@/assets/yves-trionnaire-real.jpg";
 import introVideo from "@/assets/yves-introduction.mp4";
 
-const CALENDLY_URL = "https://calendly.com/yvestrionnaire";
-
 export default function Landing() {
-  // Load Calendly inline-widget script once
-  useEffect(() => {
-    const id = "calendly-widget-script";
-    if (document.getElementById(id)) return;
-    const s = document.createElement("script");
-    s.id = id;
-    s.src = "https://assets.calendly.com/assets/external/widget.js";
-    s.async = true;
-    document.body.appendChild(s);
-  }, []);
-
   return (
     <main>
       <Header />
@@ -117,44 +104,27 @@ export default function Landing() {
         </p>
       </Section>
 
-      {/* Booking — package multi-booking + Calendly fallback */}
+      {/* Booking CTA */}
       <section id="book" className="app-container py-10">
         <h2 className="section-title mb-3 text-center">Book your lesson</h2>
         <p className="mx-auto mb-7 max-w-2xl text-center text-secondaryText">
-          Have a package? Book all your lessons in one go with the new <strong>multi-booking calendar</strong>.
-          New here? Use Calendly below to schedule a single trial lesson.
+          Pick one slot for a free 30-min trial, or pre-book your whole package of 5, 10 or 20 lessons in one go.
+          A <strong>Google Meet</strong> invite is sent to your email for every lesson.
         </p>
 
-        {/* New: package booking CTA */}
-        <div className="fw-card mx-auto mb-8 max-w-3xl border-2 border-primary/40 bg-primary/5 p-6 text-center">
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
-            ✨ New
-          </div>
-          <h3 className="mb-2 text-xl font-bold">Book all your package lessons at once</h3>
+        <div className="fw-card mx-auto max-w-3xl border-2 border-primary/40 bg-primary/5 p-6 text-center">
+          <h3 className="mb-2 text-xl font-bold">Open the booking calendar</h3>
           <p className="mx-auto mb-5 max-w-xl text-sm text-secondaryText">
-            Select 5, 10, or 20 slots in one flow. A Google Meet link is automatically generated for each lesson.
+            No signup needed. Pick your slots, enter your name & email, and you're done.
             You can reschedule any lesson up to 5 minutes before it starts.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <a href="/book" className="btn-primary"><CalendarDays className="h-4 w-4" /> Open multi-booking</a>
-            <a href="/lessons" className="btn-secondary">My lessons</a>
+            <a href="/book" className="btn-primary"><CalendarDays className="h-4 w-4" /> Book a lesson</a>
           </div>
-          <p className="mt-3 text-xs text-secondaryText">🧪 Demo mode — try it with 20 free credits, no signup needed.</p>
+          <p className="mt-3 text-xs text-secondaryText">
+            🎁 Free 30-min trial available — no payment required.
+          </p>
         </div>
-
-        {/* Calendly: still available for single trial bookings */}
-        <details className="mx-auto max-w-3xl">
-          <summary className="cursor-pointer text-center text-sm text-secondaryText hover:text-primary">
-            Or book a single trial lesson with Calendly →
-          </summary>
-          <div className="fw-card mt-4 overflow-hidden">
-            <div
-              className="calendly-inline-widget"
-              data-url={`${CALENDLY_URL}?hide_gdpr_banner=1&primary_color=00b386`}
-              style={{ minWidth: "320px", height: "720px" }}
-            />
-          </div>
-        </details>
       </section>
 
       {/* Reviews removed per request */}

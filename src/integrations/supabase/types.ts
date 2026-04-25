@@ -40,31 +40,40 @@ export type Database = {
           created_at: string
           duration_minutes: number
           google_event_id: string | null
+          guest_email: string | null
+          guest_name: string | null
           id: string
+          lesson_type: string
           meet_link: string | null
           scheduled_at: string
           status: Database["public"]["Enums"]["lesson_status"]
-          student_id: string
+          student_id: string | null
         }
         Insert: {
           created_at?: string
           duration_minutes?: number
           google_event_id?: string | null
+          guest_email?: string | null
+          guest_name?: string | null
           id?: string
+          lesson_type?: string
           meet_link?: string | null
           scheduled_at: string
           status?: Database["public"]["Enums"]["lesson_status"]
-          student_id: string
+          student_id?: string | null
         }
         Update: {
           created_at?: string
           duration_minutes?: number
           google_event_id?: string | null
+          guest_email?: string | null
+          guest_name?: string | null
           id?: string
+          lesson_type?: string
           meet_link?: string | null
           scheduled_at?: string
           status?: Database["public"]["Enums"]["lesson_status"]
-          student_id?: string
+          student_id?: string | null
         }
         Relationships: []
       }
@@ -208,6 +217,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      book_guest_lessons: {
+        Args: {
+          _duration_minutes?: number
+          _guest_email: string
+          _guest_name: string
+          _lesson_type?: string
+          _slots: string[]
+        }
+        Returns: string[]
+      }
       book_lesson: { Args: { _scheduled_at: string }; Returns: string }
       book_lessons: {
         Args: { _slots: string[]; _student_id: string }
@@ -222,6 +241,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      reschedule_guest_lesson: {
+        Args: { _guest_email: string; _lesson_id: string; _new_slot: string }
+        Returns: undefined
       }
       reschedule_lesson: {
         Args: { _lesson_id: string; _new_slot: string }

@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
     const end = new Date(start.getTime() + (lesson.duration_minutes ?? 60) * 60_000);
 
     const resp = await fetch(
-      `${GATEWAY_URL}/calendars/primary/events/${lesson.google_event_id}?sendUpdates=none`,
+      `${GATEWAY_URL}/calendars/primary/events/${lesson.google_event_id}?sendUpdates=all`,
       {
         method: "PATCH",
         headers: {
