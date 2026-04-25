@@ -334,11 +334,6 @@ function ReviewsPanel() {
   );
 }
 
-const REVIEWS: [string, string][] = [
-  ["Emma L.", "Yves is incredibly patient and organized. Every class feels useful and motivating."],
-  ["Michael T.", "I finally understand French grammar in a way that makes sense."],
-  ["Sophie R.", "The structure and lesson follow-up helped me stay consistent for months."],
-];
 
 const REVIEWS_LONG: [string, string][] = [
   ["Daniel · 18 lessons", "I had over 30 lessons with Yves over a 3 months period and I am going to carry on as he was an amazing teacher. My grammar and confidence in conversation improved a lot."],
