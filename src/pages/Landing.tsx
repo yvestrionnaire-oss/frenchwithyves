@@ -254,6 +254,7 @@ function AboutPanel() {
 function SpecialtiesPanel() {
   const groups: [string, string[]][] = [
     ["Levels", ["Beginner", "Upper Beginner", "Intermediate", "Upper Intermediate", "Advanced", "Upper Advanced"]],
+    ["Ages", ["All ages welcome", "Children", "Teenagers", "Adults", "Seniors"]],
     ["Language skills", ["Accent Reduction", "Grammar Development", "Listening Comprehension", "Phonetics", "Reading Comprehension", "Speaking Practice", "Vocabulary Development", "Writing Correction"]],
     ["Student Goals", ["DALF", "DELF", "Business French", "Interview Preparation", "Travel French", "Weekly guided learning"]],
   ];
