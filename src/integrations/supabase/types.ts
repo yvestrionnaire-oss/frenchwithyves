@@ -39,7 +39,9 @@ export type Database = {
         Row: {
           created_at: string
           duration_minutes: number
+          google_event_id: string | null
           id: string
+          meet_link: string | null
           scheduled_at: string
           status: Database["public"]["Enums"]["lesson_status"]
           student_id: string
@@ -47,7 +49,9 @@ export type Database = {
         Insert: {
           created_at?: string
           duration_minutes?: number
+          google_event_id?: string | null
           id?: string
+          meet_link?: string | null
           scheduled_at: string
           status?: Database["public"]["Enums"]["lesson_status"]
           student_id: string
@@ -55,7 +59,9 @@ export type Database = {
         Update: {
           created_at?: string
           duration_minutes?: number
+          google_event_id?: string | null
           id?: string
+          meet_link?: string | null
           scheduled_at?: string
           status?: Database["public"]["Enums"]["lesson_status"]
           student_id?: string
@@ -203,14 +209,23 @@ export type Database = {
         Returns: undefined
       }
       book_lesson: { Args: { _scheduled_at: string }; Returns: string }
+      book_lessons: {
+        Args: { _slots: string[]; _student_id: string }
+        Returns: string[]
+      }
       cancel_lesson: { Args: { _lesson_id: string }; Returns: undefined }
       credit_balance: { Args: never; Returns: number }
+      credit_balance_for: { Args: { _student_id: string }; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      reschedule_lesson: {
+        Args: { _lesson_id: string; _new_slot: string }
+        Returns: undefined
       }
       revoke_role: {
         Args: {
