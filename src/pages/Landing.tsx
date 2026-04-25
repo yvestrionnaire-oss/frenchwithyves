@@ -82,14 +82,22 @@ export default function Landing() {
         <ProfileTabs />
       </section>
 
-      {/* Why */}
-      <Section title="Why students stay for the long term">
-        <div className="grid gap-6 md:grid-cols-3">
-          <FeatureCard icon={<Lightbulb className="h-5 w-5" />} title="Clear explanations">Grammar is broken down simply, with practical examples you can use right away.</FeatureCard>
-          <FeatureCard icon={<Target className="h-5 w-5" />} title="Structured progression">Each student follows a path with goals, notes, and next steps after every class.</FeatureCard>
-          <FeatureCard icon={<Laptop className="h-5 w-5" />} title="Flexible online learning">Book lessons around your schedule and keep everything organized in one place.</FeatureCard>
+      {/* Pricing */}
+      <Section title="Lesson packages">
+        <p className="mx-auto -mt-3 mb-7 max-w-2xl text-center text-secondaryText">
+          One hour at <strong>$20</strong>. Buy a package and save more as you commit to your progress. <span className="font-semibold text-primary">The 30-minute trial lesson is free.</span>
+        </p>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <PackageCard lessons={1} pricePerLesson={20} discount={0} />
+          <PackageCard lessons={5} pricePerLesson={20} discount={3} />
+          <PackageCard lessons={10} pricePerLesson={20} discount={6} highlight />
+          <PackageCard lessons={20} pricePerLesson={20} discount={9} />
         </div>
+        <p className="mx-auto mt-6 max-w-2xl text-center text-sm text-secondaryText">
+          Each lesson lasts one hour. Packages are paid upfront via the secure link I send by email.
+        </p>
       </Section>
+
 
       {/* How it works (payment flow) */}
       <Section title="How booking & payment works">
