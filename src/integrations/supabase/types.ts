@@ -196,7 +196,8 @@ export type Database = {
     }
     Functions: {
       book_lesson: { Args: { _scheduled_at: string }; Returns: string }
-      credit_balance: { Args: { _user_id: string }; Returns: number }
+      cancel_lesson: { Args: { _lesson_id: string }; Returns: undefined }
+      credit_balance: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
