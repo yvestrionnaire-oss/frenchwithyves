@@ -99,11 +99,29 @@ export default function Landing() {
             Choose an available slot directly on the calendar below. Tell me a bit about your level and goals.
           </StepCard>
           <StepCard n="2" title="Receive a payment link" icon={<CreditCard className="h-5 w-5" />}>
-            I'll personally send you a secure payment link by email from <strong>yvestrionnaire@gmail.com</strong>. (Allow a few hours during night time in Europe.)
+            I'll personally send you a secure payment link by email from <strong>yvestrionnaire@gmail.com</strong>. I'm based in Peru, so allow a few hours if you book overnight my time.
           </StepCard>
           <StepCard n="3" title="Lesson confirmed on Google Meet" icon={<CheckCircle className="h-5 w-5" />}>
             Once payment is received, I confirm your booking by email and send you a <strong>Google Meet</strong> link for the lesson. À bientôt !
           </StepCard>
+        </div>
+        <p className="mx-auto mt-6 max-w-2xl text-center text-sm text-secondaryText">
+          <strong>Need to reschedule?</strong> No problem — just email me <strong>before</strong> your scheduled lesson starts and we'll find a new time that works for you.
+        </p>
+      </Section>
+
+      {/* Shared notes during the lesson */}
+      <Section title="Shared notes during every lesson">
+        <div className="fw-card grid gap-6 p-6 md:grid-cols-[1fr_1.2fr] md:items-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-primary md:h-16 md:w-16">
+            <BookOpen className="h-6 w-6 md:h-8 md:w-8" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold">A live Google Doc we both write in</h3>
+            <p className="mt-3 leading-relaxed text-secondaryText">
+              For every class I share a <strong>Google Doc</strong> that works as an interactive notepad — both of us can type in it during the lesson: vocabulary, corrections, grammar examples, homework. After class, I export the notes as a <strong>PDF</strong> and send it to you by email so you always have a clean record of what we covered.
+            </p>
+          </div>
         </div>
       </Section>
 
