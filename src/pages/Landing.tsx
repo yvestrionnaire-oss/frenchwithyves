@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BookOpen, CalendarDays, CheckCircle, CreditCard, Lightbulb, Laptop, Mail, Star, Target, Users } from "lucide-react";
+import { BookOpen, CalendarDays, CheckCircle, CreditCard, Laptop, Mail, Star, Target, Users } from "lucide-react";
 import portrait from "@/assets/yves-trionnaire-real.jpg";
 import introVideo from "@/assets/yves-introduction.mp4";
 
