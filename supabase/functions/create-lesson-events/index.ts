@@ -11,8 +11,6 @@ const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_calendar/calen
 
 interface RequestBody {
   lessonIds: string[];
-  studentEmail?: string;
-  studentName?: string;
 }
 
 Deno.serve(async (req) => {
@@ -38,10 +36,10 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Fetch lessons
+    // Fetch lessons (guest info lives on the row)
     const { data: lessons, error: fetchErr } = await supabase
       .from("lessons")
-      .select("id, scheduled_at, duration_minutes, student_id")
+      .select("id, scheduled_at, duration_minutes, guest_name, guest_email, lesson_type")
       .in("id", body.lessonIds);
 
     if (fetchErr) throw fetchErr;
@@ -57,12 +55,15 @@ Deno.serve(async (req) => {
     for (const lesson of lessons) {
       const start = new Date(lesson.scheduled_at);
       const end = new Date(start.getTime() + (lesson.duration_minutes ?? 60) * 60_000);
+      const isTrial = lesson.lesson_type === "trial";
+      const studentName = lesson.guest_name ?? "Student";
+      const studentEmail = lesson.guest_email ?? null;
 
       const eventBody = {
-        summary: `French Lesson with ${body.studentName ?? "Student"}`,
-        description: `60-minute French lesson with Yves.\n\nStudent: ${body.studentName ?? "Demo Student"}${
-          body.studentEmail ? ` (${body.studentEmail})` : ""
-        }`,
+        summary: isTrial
+          ? `Free trial · French with ${studentName}`
+          : `French Lesson · ${studentName}`,
+        description: `${lesson.duration_minutes ?? 60}-minute ${isTrial ? "trial " : ""}French lesson with Yves.\n\nStudent: ${studentName}${studentEmail ? ` (${studentEmail})` : ""}`,
         start: { dateTime: start.toISOString(), timeZone: "UTC" },
         end: { dateTime: end.toISOString(), timeZone: "UTC" },
         conferenceData: {
@@ -71,12 +72,12 @@ Deno.serve(async (req) => {
             conferenceSolutionKey: { type: "hangoutsMeet" },
           },
         },
-        attendees: body.studentEmail ? [{ email: body.studentEmail }] : undefined,
+        attendees: studentEmail ? [{ email: studentEmail, displayName: studentName }] : undefined,
       };
 
       try {
         const resp = await fetch(
-          `${GATEWAY_URL}/calendars/primary/events?conferenceDataVersion=1&sendUpdates=none`,
+          `${GATEWAY_URL}/calendars/primary/events?conferenceDataVersion=1&sendUpdates=all`,
           {
             method: "POST",
             headers: {
