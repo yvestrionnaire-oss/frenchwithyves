@@ -195,6 +195,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: undefined
+      }
       book_lesson: { Args: { _scheduled_at: string }; Returns: string }
       cancel_lesson: { Args: { _lesson_id: string }; Returns: undefined }
       credit_balance: { Args: never; Returns: number }
@@ -204,6 +211,13 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      revoke_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
