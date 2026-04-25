@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BookOpen, CalendarDays, CheckCircle, CreditCard, Lightbulb, Laptop, Mail, MessageCircle, Quote, Star, Target, Users } from "lucide-react";
+import { BookOpen, CalendarDays, CheckCircle, CreditCard, Lightbulb, Laptop, Mail, Star, Target, Users } from "lucide-react";
 import portrait from "@/assets/yves-trionnaire-real.jpg";
 import introVideo from "@/assets/yves-introduction.mp4";
 
@@ -99,10 +99,10 @@ export default function Landing() {
             Choose an available slot directly on the calendar below. Tell me a bit about your level and goals.
           </StepCard>
           <StepCard n="2" title="Receive a payment link" icon={<CreditCard className="h-5 w-5" />}>
-            I'll personally send you a secure payment link by email. (Allow a few hours during night time in Europe.)
+            I'll personally send you a secure payment link by email from <strong>yvestrionnaire@gmail.com</strong>. (Allow a few hours during night time in Europe.)
           </StepCard>
-          <StepCard n="3" title="Lesson confirmed" icon={<CheckCircle className="h-5 w-5" />}>
-            Once payment is received, I confirm your booking and send the meeting link. À bientôt !
+          <StepCard n="3" title="Lesson confirmed on Google Meet" icon={<CheckCircle className="h-5 w-5" />}>
+            Once payment is received, I confirm your booking by email and send you a <strong>Google Meet</strong> link for the lesson. À bientôt !
           </StepCard>
         </div>
       </Section>
@@ -122,28 +122,17 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Reviews */}
-      <Section title="What students say">
-        <div className="grid gap-6 md:grid-cols-3">
-          {REVIEWS.map(([name, q]) => (
-            <blockquote className="fw-card p-6" key={name}>
-              <Quote className="mb-3 h-8 w-8 text-primary" />
-              <p className="text-primary">★★★★★</p>
-              <p className="mt-2 italic text-secondaryText">"{q}"</p>
-              <div className="mt-4 text-sm font-bold">{name}</div>
-            </blockquote>
-          ))}
-        </div>
-      </Section>
+      {/* Reviews removed per request */}
+
 
       {/* Contact */}
       <section className="app-container py-10">
         <div className="fw-card flex flex-col gap-5 bg-secondary p-6 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-2xl font-bold">A question before booking?</h2>
-            <p className="mt-2 text-secondaryText">Send me an email — I'll get back to you personally.</p>
+            <p className="mt-2 text-secondaryText">All communication happens by email. Write to me at <strong>yvestrionnaire@gmail.com</strong> and I'll get back to you personally.</p>
           </div>
-          <a href="mailto:yvestrionnaire@gmail.com" className="btn-primary"><Mail className="h-4 w-4" /> Email Yves</a>
+          <a href="mailto:yvestrionnaire@gmail.com" className="btn-primary"><Mail className="h-4 w-4" /> yvestrionnaire@gmail.com</a>
         </div>
       </section>
 
@@ -265,11 +254,12 @@ function AboutPanel() {
 function SpecialtiesPanel() {
   const groups: [string, string[]][] = [
     ["Levels", ["Beginner", "Upper Beginner", "Intermediate", "Upper Intermediate", "Advanced", "Upper Advanced"]],
+    ["Ages", ["All ages welcome", "Children", "Teenagers", "Adults", "Seniors"]],
     ["Language skills", ["Accent Reduction", "Grammar Development", "Listening Comprehension", "Phonetics", "Reading Comprehension", "Speaking Practice", "Vocabulary Development", "Writing Correction"]],
     ["Student Goals", ["DALF", "DELF", "Business French", "Interview Preparation", "Travel French", "Weekly guided learning"]],
   ];
   return (
-    <div className="grid gap-5 md:grid-cols-3">
+    <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
       {groups.map(([g, items]) => (
         <div key={g}>
           <h4 className="mb-3 font-bold">{g}</h4>
@@ -344,11 +334,6 @@ function ReviewsPanel() {
   );
 }
 
-const REVIEWS: [string, string][] = [
-  ["Emma L.", "Yves is incredibly patient and organized. Every class feels useful and motivating."],
-  ["Michael T.", "I finally understand French grammar in a way that makes sense."],
-  ["Sophie R.", "The structure and lesson follow-up helped me stay consistent for months."],
-];
 
 const REVIEWS_LONG: [string, string][] = [
   ["Daniel · 18 lessons", "I had over 30 lessons with Yves over a 3 months period and I am going to carry on as he was an amazing teacher. My grammar and confidence in conversation improved a lot."],
