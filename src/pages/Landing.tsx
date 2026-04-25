@@ -1,135 +1,360 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
-import { GraduationCap, Sparkles } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from "react";
+import { BookOpen, CalendarDays, CheckCircle, CreditCard, Lightbulb, Laptop, Mail, MessageCircle, Quote, Star, Target, Users } from "lucide-react";
 import portrait from "@/assets/yves-trionnaire-real.jpg";
 import introVideo from "@/assets/yves-introduction.mp4";
 
-type Mode = "login" | "signup";
-type Role = "student" | "teacher";
+// TODO: Replace with your real Calendly URL (e.g. https://calendly.com/yves-trionnaire/30min)
+const CALENDLY_URL = "https://calendly.com/your-handle/30min";
 
 export default function Landing() {
-  const navigate = useNavigate();
-  const [mode, setMode] = useState<Mode>("login");
-  const [role, setRole] = useState<Role>("student");
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    try {
-      if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`,
-            data: { full_name: fullName, role },
-          },
-        });
-        if (error) throw error;
-        toast.success("Welcome! You're signed in.");
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        toast.success("Signed in.");
-      }
-      navigate("/dashboard");
-    } catch (err: any) {
-      toast.error(err.message ?? "Something went wrong");
-    } finally {
-      setBusy(false);
-    }
-  };
+  // Load Calendly inline-widget script once
+  useEffect(() => {
+    const id = "calendly-widget-script";
+    if (document.getElementById(id)) return;
+    const s = document.createElement("script");
+    s.id = id;
+    s.src = "https://assets.calendly.com/assets/external/widget.js";
+    s.async = true;
+    document.body.appendChild(s);
+  }, []);
 
   return (
-    <main className="min-h-screen bg-background">
-      <div className="app-container grid gap-10 py-10 lg:grid-cols-[1.1fr_1fr] lg:py-16">
-        {/* Hero */}
-        <section className="flex flex-col justify-center">
-          <span className="pill mb-5 w-fit"><Sparkles className="h-3.5 w-3.5 text-primary" /> Private French lessons with Yves</span>
-          <h1 className="text-4xl font-bold leading-tight md:text-5xl">
-            Bonjour ! Welcome back to your French learning space.
+    <main>
+      <Header />
+
+      {/* Hero */}
+      <section id="home" className="app-container grid gap-10 py-10 lg:grid-cols-[1fr_1.1fr] lg:items-center lg:py-16">
+        <div className="animate-fade-up">
+          <span className="pill mb-4"><CheckCircle className="h-3.5 w-3.5 text-primary" /> Native French teacher · DAEFLE certified</span>
+          <h1 className="max-w-2xl text-4xl font-bold leading-tight md:text-5xl">
+            Learn French with clarity, structure, and confidence.
           </h1>
-          <p className="mt-4 max-w-xl text-lg text-secondaryText">
-            Sign in to your student account to book lessons, track your credits, and message Yves.
-            New here? Create an account in 30 seconds.
+          <p className="mt-5 max-w-xl text-lg leading-relaxed text-secondaryText">
+            Private online French lessons for beginners, professionals, and long-term learners. Pick a time on my calendar — I'll send you a payment link, and once it's settled, your spot is confirmed.
           </p>
-
-          <div className="mt-8 flex items-center gap-4">
-            <img src={portrait} alt="Yves Trionnaire — French teacher" className="h-16 w-16 rounded-full object-cover ring-2 ring-primary/20" />
-            <div>
-              <div className="font-semibold">Yves Trionnaire</div>
-              <div className="text-sm text-secondaryText">Native French teacher · Verbling-style 1-on-1</div>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <a href="#book" className="btn-primary"><CalendarDays className="h-4 w-4" /> Book a lesson</a>
+            <a href="#about" className="btn-secondary">Learn more about Yves</a>
+          </div>
+          <p className="mt-6 flex items-center gap-2 text-sm text-secondaryText">
+            <Star className="h-4 w-4 fill-primary text-primary" /> 5.0 average rating · 8,500+ lessons taught · 9+ years teaching
+          </p>
+        </div>
+        <div className="relative">
+          <img src={portrait} alt="Yves Trionnaire, online French teacher" width={512} height={512} className="aspect-[4/3] w-full rounded-lg object-cover shadow-soft" />
+          <div className="absolute left-4 top-10 grid gap-3">
+            <div className="fw-card flex items-center gap-3 px-4 py-3">
+              <Star className="h-5 w-5 fill-primary text-primary" />
+              <div><strong className="block leading-none">5.0</strong><p className="text-xs text-secondaryText">Average rating</p></div>
+            </div>
+            <div className="fw-card flex items-center gap-3 px-4 py-3">
+              <BookOpen className="h-5 w-5 text-primary" />
+              <div><strong className="block leading-none">8,537</strong><p className="text-xs text-secondaryText">Lessons taught</p></div>
             </div>
           </div>
+        </div>
+      </section>
 
-          <div className="mt-8 fw-card overflow-hidden">
-            <video src={introVideo} controls playsInline preload="metadata" className="h-auto w-full" poster="" />
+      {/* Intro video */}
+      <section className="app-container pb-8">
+        <div className="fw-card grid gap-6 p-5 lg:grid-cols-[0.75fr_1fr] lg:items-center">
+          <div>
+            <p className="text-sm font-bold text-primary">Introduction video</p>
+            <h2 className="mt-2 text-2xl font-bold">Meet Yves before your first lesson</h2>
+            <p className="mt-3 text-secondaryText">A short welcome from Yves so you can get a feel for his calm, structured teaching style.</p>
           </div>
-        </section>
+          <video className="aspect-video w-full rounded-lg border border-border bg-muted object-cover" controls preload="metadata" src={introVideo}>
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      </section>
 
-        {/* Auth card */}
-        <section className="flex items-start justify-center lg:items-center">
-          <div className="fw-card w-full max-w-md p-7">
-            <div className="mb-6 flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-primary">
-                <GraduationCap className="h-6 w-6" />
-              </span>
-              <div>
-                <h2 className="text-xl font-bold">{mode === "login" ? "Sign in" : "Create your account"}</h2>
-                <p className="text-sm text-secondaryText">
-                  {mode === "login" ? "Welcome back." : "It only takes a few seconds."}
-                </p>
-              </div>
-            </div>
+      {/* Stats */}
+      <section className="app-container grid gap-4 py-6 md:grid-cols-2 lg:grid-cols-4">
+        <StatCard icon={<BookOpen className="h-5 w-5" />} value="8,537" label="Lessons taught" />
+        <StatCard icon={<Star className="h-5 w-5" />} value="5.0 / 5.0" label="Average rating" />
+        <StatCard icon={<Target className="h-5 w-5" />} value="9+ years" label="Teaching experience" />
+        <StatCard icon={<Users className="h-5 w-5" />} value="22.6" label="Lessons per student" />
+      </section>
 
-            <div className="mb-5 flex rounded-lg border border-border bg-muted/40 p-1">
-              <button type="button" onClick={() => setMode("login")} className={`flex-1 rounded-md px-3 py-2 text-sm font-bold ${mode === "login" ? "bg-card text-primary shadow-sm" : "text-secondaryText"}`}>Sign in</button>
-              <button type="button" onClick={() => setMode("signup")} className={`flex-1 rounded-md px-3 py-2 text-sm font-bold ${mode === "signup" ? "bg-card text-primary shadow-sm" : "text-secondaryText"}`}>Sign up</button>
-            </div>
+      {/* Profile tabs */}
+      <section id="about" className="app-container py-10">
+        <h2 className="section-title mb-7 text-center">About Yves</h2>
+        <ProfileTabs />
+      </section>
 
-            <form onSubmit={submit} className="grid gap-4">
-              {mode === "signup" && (
-                <>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium">Full name</label>
-                    <input required value={fullName} onChange={(e) => setFullName(e.target.value)} className="fw-input" placeholder="Marie Dupont" />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium">I am a</label>
-                    <div className="flex rounded-lg border border-border p-1">
-                      <button type="button" onClick={() => setRole("student")} className={`flex-1 rounded-md px-3 py-2 text-sm font-bold ${role === "student" ? "bg-secondary text-primary" : "text-secondaryText"}`}>Student</button>
-                      <button type="button" onClick={() => setRole("teacher")} className={`flex-1 rounded-md px-3 py-2 text-sm font-bold ${role === "teacher" ? "bg-secondary text-primary" : "text-secondaryText"}`}>Teacher (Yves)</button>
-                    </div>
-                  </div>
-                </>
-              )}
-              <div>
-                <label className="mb-1 block text-sm font-medium">Email</label>
-                <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="fw-input" placeholder="you@example.com" />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium">Password</label>
-                <input required type="password" minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} className="fw-input" placeholder="At least 6 characters" />
-              </div>
-              <button type="submit" disabled={busy} className="btn-primary mt-2 w-full">
-                {busy ? "Please wait…" : mode === "login" ? "Sign in" : "Create account"}
-              </button>
-              <p className="mt-1 text-center text-xs text-mutedText">
-                {mode === "login" ? "New student? " : "Already have an account? "}
-                <button type="button" onClick={() => setMode(mode === "login" ? "signup" : "login")} className="font-semibold text-accent">
-                  {mode === "login" ? "Create an account" : "Sign in"}
-                </button>
-              </p>
-            </form>
+      {/* Why */}
+      <Section title="Why students stay for the long term">
+        <div className="grid gap-6 md:grid-cols-3">
+          <FeatureCard icon={<Lightbulb className="h-5 w-5" />} title="Clear explanations">Grammar is broken down simply, with practical examples you can use right away.</FeatureCard>
+          <FeatureCard icon={<Target className="h-5 w-5" />} title="Structured progression">Each student follows a path with goals, notes, and next steps after every class.</FeatureCard>
+          <FeatureCard icon={<Laptop className="h-5 w-5" />} title="Flexible online learning">Book lessons around your schedule and keep everything organized in one place.</FeatureCard>
+        </div>
+      </Section>
+
+      {/* How it works (payment flow) */}
+      <Section title="How booking & payment works">
+        <div className="grid gap-6 md:grid-cols-3">
+          <StepCard n="1" title="Pick a time" icon={<CalendarDays className="h-5 w-5" />}>
+            Choose an available slot directly on the calendar below. Tell me a bit about your level and goals.
+          </StepCard>
+          <StepCard n="2" title="Receive a payment link" icon={<CreditCard className="h-5 w-5" />}>
+            I'll personally send you a secure payment link by email. (Allow a few hours during night time in Europe.)
+          </StepCard>
+          <StepCard n="3" title="Lesson confirmed" icon={<CheckCircle className="h-5 w-5" />}>
+            Once payment is received, I confirm your booking and send the meeting link. À bientôt !
+          </StepCard>
+        </div>
+      </Section>
+
+      {/* Calendly embed */}
+      <section id="book" className="app-container py-10">
+        <h2 className="section-title mb-3 text-center">Book your lesson</h2>
+        <p className="mx-auto mb-7 max-w-2xl text-center text-secondaryText">
+          Pick a time that suits you. After you book, I'll email you a payment link. Your slot is confirmed once payment is received.
+        </p>
+        <div className="fw-card overflow-hidden">
+          <div
+            className="calendly-inline-widget"
+            data-url={`${CALENDLY_URL}?hide_gdpr_banner=1&primary_color=00b386`}
+            style={{ minWidth: "320px", height: "720px" }}
+          />
+        </div>
+      </section>
+
+      {/* Reviews */}
+      <Section title="What students say">
+        <div className="grid gap-6 md:grid-cols-3">
+          {REVIEWS.map(([name, q]) => (
+            <blockquote className="fw-card p-6" key={name}>
+              <Quote className="mb-3 h-8 w-8 text-primary" />
+              <p className="text-primary">★★★★★</p>
+              <p className="mt-2 italic text-secondaryText">"{q}"</p>
+              <div className="mt-4 text-sm font-bold">{name}</div>
+            </blockquote>
+          ))}
+        </div>
+      </Section>
+
+      {/* Contact */}
+      <section className="app-container py-10">
+        <div className="fw-card flex flex-col gap-5 bg-secondary p-6 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-2xl font-bold">A question before booking?</h2>
+            <p className="mt-2 text-secondaryText">Send me an email — I'll get back to you personally.</p>
           </div>
-        </section>
-      </div>
+          <a href="mailto:yvestrionnaire@gmail.com" className="btn-primary"><Mail className="h-4 w-4" /> Email Yves</a>
+        </div>
+      </section>
+
+      <footer className="border-t border-border py-8 text-center text-sm text-secondaryText">
+        © {new Date().getFullYear()} Yves Trionnaire — Private French lessons.
+      </footer>
     </main>
   );
 }
+
+/* ---------------- helpers ---------------- */
+
+function Header() {
+  return (
+    <header className="border-b border-border bg-card">
+      <div className="app-container flex items-center justify-between py-4">
+        <a href="#home" className="flex items-center gap-3">
+          <img src={portrait} alt="" className="h-9 w-9 rounded-full object-cover ring-2 ring-primary/20" />
+          <div className="leading-tight">
+            <div className="font-bold">Yves Trionnaire</div>
+            <div className="text-xs text-secondaryText">Native French teacher</div>
+          </div>
+        </a>
+        <nav className="hidden items-center gap-6 text-sm font-semibold text-secondaryText md:flex">
+          <a href="#about" className="hover:text-primary">About</a>
+          <a href="#book" className="hover:text-primary">Book</a>
+          <a href="mailto:yvestrionnaire@gmail.com" className="hover:text-primary">Contact</a>
+        </nav>
+        <a href="#book" className="btn-primary !py-2 !text-xs">Book a lesson</a>
+      </div>
+    </header>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="app-container py-10">
+      <h2 className="section-title mb-7 text-center">{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+function StatCard({ icon, value, label }: { icon: React.ReactNode; value: string; label: string }) {
+  return (
+    <div className="fw-card p-5">
+      <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-primary">{icon}</div>
+      <div className="text-2xl font-bold">{value}</div>
+      <div className="text-sm text-secondaryText">{label}</div>
+    </div>
+  );
+}
+
+function FeatureCard({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
+  return (
+    <div className="fw-card p-6">
+      <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-primary">{icon}</div>
+      <h3 className="font-bold">{title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-secondaryText">{children}</p>
+    </div>
+  );
+}
+
+function StepCard({ n, title, icon, children }: { n: string; title: string; icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div className="fw-card p-6">
+      <div className="mb-4 flex items-center gap-3">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-xl font-bold text-primary">{n}</div>
+        <div className="text-primary">{icon}</div>
+      </div>
+      <h3 className="font-bold">{title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-secondaryText">{children}</p>
+    </div>
+  );
+}
+
+function ProfileTabs() {
+  const [tab, setTab] = useState<"About" | "Specialties" | "Resume" | "Reviews">("About");
+  return (
+    <div className="fw-card overflow-hidden">
+      <div className="flex overflow-auto border-b border-border">
+        {(["About", "Specialties", "Resume", "Reviews"] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`px-6 py-4 text-sm font-bold transition ${tab === t ? "border-b-2 border-primary text-primary" : "text-secondaryText hover:text-foreground"}`}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+      <div className="p-6">
+        {tab === "About" && <AboutPanel />}
+        {tab === "Specialties" && <SpecialtiesPanel />}
+        {tab === "Resume" && <ResumePanel />}
+        {tab === "Reviews" && <ReviewsPanel />}
+      </div>
+    </div>
+  );
+}
+
+function AboutPanel() {
+  return (
+    <>
+      <div className="mb-5 rounded-lg border border-primary bg-secondary p-4">
+        <strong>Trial lesson available</strong>
+        <p className="mt-1 text-sm text-secondaryText">Start with a first lesson to discuss your interests, objectives, preferred schedule, and the best approach for regular progress.</p>
+      </div>
+      <p className="leading-relaxed text-secondaryText">
+        Bonjour, I'm Yves, a French tutor from France and a DAEFLE certified teacher from the Alliance Française. I have been teaching French for more than nine years and offer classes adapted to your needs: conversation, vocabulary, grammar, pronunciation, exam preparation, business French, or long-term fluency. My approach is interactive and practical, with real-life communication from the start so students can quickly feel the use of the language.
+      </p>
+      <p className="mt-4 leading-relaxed text-secondaryText">
+        In class, we focus on useful communication, clear corrections, and steady confidence. I adapt each lesson to your objective, whether you need natural conversation, stronger grammar, better pronunciation, preparation for DELF/TCF/TEF, or French for travel and work.
+      </p>
+    </>
+  );
+}
+
+function SpecialtiesPanel() {
+  const groups: [string, string[]][] = [
+    ["Levels", ["Beginner", "Upper Beginner", "Intermediate", "Upper Intermediate", "Advanced", "Upper Advanced"]],
+    ["Language skills", ["Accent Reduction", "Grammar Development", "Listening Comprehension", "Phonetics", "Reading Comprehension", "Speaking Practice", "Vocabulary Development", "Writing Correction"]],
+    ["Student Goals", ["DALF", "DELF", "Business French", "Interview Preparation", "Travel French", "Weekly guided learning"]],
+  ];
+  return (
+    <div className="grid gap-5 md:grid-cols-3">
+      {groups.map(([g, items]) => (
+        <div key={g}>
+          <h4 className="mb-3 font-bold">{g}</h4>
+          <div className="flex flex-wrap gap-2">
+            {items.map((x) => <span className="pill" key={x}>{x}</span>)}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ResumePanel() {
+  const sections = [
+    { title: "Education", items: [
+      ["2016–2017", "DAEFLE — Diplôme d'Aptitude à l'Enseignement du Français Langue Étrangère", "Alliance Française, Barcelona"],
+      ["2009–2012", "M.Sc. in International Business Management", "Philipps Universität Marburg"],
+    ] },
+    { title: "Teaching Experience", items: [
+      ["2017–Present", "French Language Teacher", "Verbling · Online"],
+      ["2017–2018", "English Language Teacher", "Helping Overcome Obstacles Peru"],
+      ["2016–2017", "Assistant French & English Language Teacher", "EOI de Cornellà de Llobregat"],
+      ["2016–2017", "French Language Teacher", "BCN Languages · Barcelona"],
+    ] },
+    { title: "Languages", items: [
+      ["Native", "French", "Mother tongue"],
+      ["C2", "English", "Fluent professional proficiency"],
+      ["C1", "Spanish", "Fluent professional proficiency"],
+      ["B1", "German", "Intermediate"],
+      ["A1", "Mandarin", "Beginner"],
+    ] },
+  ];
+  return (
+    <div className="grid gap-6">
+      {sections.map((section) => (
+        <section key={section.title} className="rounded-lg border border-border bg-card">
+          <h4 className="border-b border-border px-5 py-4 text-lg font-bold">{section.title}</h4>
+          <div className="divide-y divide-border">
+            {section.items.map(([date, title, place]) => (
+              <div key={`${date}-${title}`} className="grid gap-2 px-5 py-4 md:grid-cols-[140px_1fr]">
+                <div className="text-sm font-bold text-primary">{date}</div>
+                <div>
+                  <p className="font-semibold">{title}</p>
+                  <p className="mt-1 text-sm text-secondaryText">{place}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function ReviewsPanel() {
+  return (
+    <>
+      <div className="mb-5 flex items-center gap-3">
+        <span className="pill bg-secondary text-primary">5.0</span>
+        <p className="text-sm text-secondaryText">Based on feedback from long-term students</p>
+      </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        {REVIEWS_LONG.map(([name, q]) => (
+          <div className="fw-card-flat p-4" key={name}>
+            <strong>{name}</strong>
+            <p className="my-2 text-primary">★★★★★</p>
+            <p className="text-sm text-secondaryText">"{q}"</p>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+const REVIEWS: [string, string][] = [
+  ["Emma L.", "Yves is incredibly patient and organized. Every class feels useful and motivating."],
+  ["Michael T.", "I finally understand French grammar in a way that makes sense."],
+  ["Sophie R.", "The structure and lesson follow-up helped me stay consistent for months."],
+];
+
+const REVIEWS_LONG: [string, string][] = [
+  ["Daniel · 18 lessons", "I had over 30 lessons with Yves over a 3 months period and I am going to carry on as he was an amazing teacher. My grammar and confidence in conversation improved a lot."],
+  ["Nikolay · 26 lessons", "The lessons are very well-structured and cover conversation, writing, reading, and listening practices tailored to my travel and everyday life needs."],
+  ["Marie · 68 lessons", "It is always a pleasure talking to Yves. He is very patient and corrects my mistakes in real time, which I totally appreciate."],
+  ["Drysdale · 4 lessons", "A really professional, very kind, patient and informed teacher. He explains grammar well and gently corrects mistakes while keeping me motivated."],
+  ["Atthawoot · 44 lessons", "Yves always engages me in conversation so that I can practice speaking French. He is a very motivational tutor and a true Grammar guru."],
+  ["MELINA · 7 lessons", "Yves is a great teacher. He is very kind and patient and structures class so that you get practice in speaking, writing and listening."],
+];
