@@ -117,21 +117,6 @@ export default function Landing() {
         </p>
       </Section>
 
-      {/* Shared notes during the lesson */}
-      <Section title="Shared notes during every lesson">
-        <div className="fw-card grid gap-6 p-6 md:grid-cols-[1fr_1.2fr] md:items-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-primary md:h-16 md:w-16">
-            <BookOpen className="h-6 w-6 md:h-8 md:w-8" />
-          </div>
-          <div>
-            <h3 className="text-xl font-bold">A live Google Doc we both write in</h3>
-            <p className="mt-3 leading-relaxed text-secondaryText">
-              For every class I share a <strong>Google Doc</strong> that works as an interactive notepad — both of us can type in it during the lesson: vocabulary, corrections, grammar examples, homework. After class, I export the notes as a <strong>PDF</strong> and send it to you by email so you always have a clean record of what we covered.
-            </p>
-          </div>
-        </div>
-      </Section>
-
       {/* Calendly embed */}
       <section id="book" className="app-container py-10">
         <h2 className="section-title mb-3 text-center">Book your lesson</h2>
@@ -146,6 +131,21 @@ export default function Landing() {
           />
         </div>
       </section>
+
+      {/* Shared notes during the lesson */}
+      <Section title="Shared notes during every lesson">
+        <div className="fw-card grid gap-6 p-6 md:grid-cols-[1fr_1.2fr] md:items-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-primary md:h-16 md:w-16">
+            <BookOpen className="h-6 w-6 md:h-8 md:w-8" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold">A live Google Doc we both write in</h3>
+            <p className="mt-3 leading-relaxed text-secondaryText">
+              For every class I share a <strong>Google Doc</strong> that works as an interactive notepad — both of us can type in it during the lesson: vocabulary, corrections, grammar examples, homework. After class, I export the notes as a <strong>PDF</strong> and send it to you by email so you always have a clean record of what we covered.
+            </p>
+          </div>
+        </div>
+      </Section>
 
       {/* Reviews removed per request */}
 
