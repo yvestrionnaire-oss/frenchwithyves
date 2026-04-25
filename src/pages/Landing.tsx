@@ -236,11 +236,6 @@ function PackageCard({ lessons, pricePerLesson, discount, highlight }: { lessons
         ${effective.toFixed(2)} / hour
         {discount > 0 && <span className="ml-2 text-xs line-through">${subtotal}</span>}
       </p>
-      <ul className="mt-4 space-y-2 text-sm text-secondaryText">
-        <li className="flex items-start gap-2"><CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> 1-hour private online lessons</li>
-        <li className="flex items-start gap-2"><CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> Shared Google Doc + PDF notes</li>
-        <li className="flex items-start gap-2"><CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> Flexible rescheduling by email</li>
-      </ul>
     </div>
   );
 }
