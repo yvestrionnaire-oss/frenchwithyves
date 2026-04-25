@@ -56,15 +56,15 @@ export default function Landing() {
 
       {/* Intro video */}
       <section className="app-container pb-8">
-        <div className="fw-card grid gap-6 p-5 lg:grid-cols-[0.75fr_1fr] lg:items-center">
+        <div className="fw-card grid gap-6 p-5 lg:grid-cols-[1fr_0.75fr] lg:items-center">
+          <video className="aspect-video w-full rounded-lg border border-border bg-muted object-cover" controls preload="metadata" src={introVideo}>
+            Your browser does not support the video tag.
+          </video>
           <div>
             <p className="text-sm font-bold text-primary">Introduction video</p>
             <h2 className="mt-2 text-2xl font-bold">Meet Yves before your first lesson</h2>
             <p className="mt-3 text-secondaryText">A short welcome from Yves so you can get a feel for his calm, structured teaching style.</p>
           </div>
-          <video className="aspect-video w-full rounded-lg border border-border bg-muted object-cover" controls preload="metadata" src={introVideo}>
-            Your browser does not support the video tag.
-          </video>
         </div>
       </section>
 
