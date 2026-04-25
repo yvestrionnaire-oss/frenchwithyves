@@ -130,9 +130,9 @@ export default function Landing() {
         <div className="fw-card flex flex-col gap-5 bg-secondary p-6 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-2xl font-bold">A question before booking?</h2>
-            <p className="mt-2 text-secondaryText">Send me an email — I'll get back to you personally.</p>
+            <p className="mt-2 text-secondaryText">All communication happens by email. Write to me at <strong>yvestrionnaire@gmail.com</strong> and I'll get back to you personally.</p>
           </div>
-          <a href="mailto:yvestrionnaire@gmail.com" className="btn-primary"><Mail className="h-4 w-4" /> Email Yves</a>
+          <a href="mailto:yvestrionnaire@gmail.com" className="btn-primary"><Mail className="h-4 w-4" /> yvestrionnaire@gmail.com</a>
         </div>
       </section>
 
