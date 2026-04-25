@@ -117,19 +117,44 @@ export default function Landing() {
         </p>
       </Section>
 
-      {/* Calendly embed */}
+      {/* Booking — package multi-booking + Calendly fallback */}
       <section id="book" className="app-container py-10">
         <h2 className="section-title mb-3 text-center">Book your lesson</h2>
         <p className="mx-auto mb-7 max-w-2xl text-center text-secondaryText">
-          Pick a time that suits you. After you book, I'll email you a payment link. Your slot is confirmed once payment is received. The <strong>Google Meet link</strong> for our class will be sent to you by email <strong>5 minutes before</strong> the lesson starts.
+          Have a package? Book all your lessons in one go with the new <strong>multi-booking calendar</strong>.
+          New here? Use Calendly below to schedule a single trial lesson.
         </p>
-        <div className="fw-card overflow-hidden">
-          <div
-            className="calendly-inline-widget"
-            data-url={`${CALENDLY_URL}?hide_gdpr_banner=1&primary_color=00b386`}
-            style={{ minWidth: "320px", height: "720px" }}
-          />
+
+        {/* New: package booking CTA */}
+        <div className="fw-card mx-auto mb-8 max-w-3xl border-2 border-primary/40 bg-primary/5 p-6 text-center">
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+            ✨ New
+          </div>
+          <h3 className="mb-2 text-xl font-bold">Book all your package lessons at once</h3>
+          <p className="mx-auto mb-5 max-w-xl text-sm text-secondaryText">
+            Select 5, 10, or 20 slots in one flow. A Google Meet link is automatically generated for each lesson.
+            You can reschedule any lesson up to 5 minutes before it starts.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <a href="/book" className="btn-primary"><CalendarDays className="h-4 w-4" /> Open multi-booking</a>
+            <a href="/lessons" className="btn-secondary">My lessons</a>
+          </div>
+          <p className="mt-3 text-xs text-secondaryText">🧪 Demo mode — try it with 20 free credits, no signup needed.</p>
         </div>
+
+        {/* Calendly: still available for single trial bookings */}
+        <details className="mx-auto max-w-3xl">
+          <summary className="cursor-pointer text-center text-sm text-secondaryText hover:text-primary">
+            Or book a single trial lesson with Calendly →
+          </summary>
+          <div className="fw-card mt-4 overflow-hidden">
+            <div
+              className="calendly-inline-widget"
+              data-url={`${CALENDLY_URL}?hide_gdpr_banner=1&primary_color=00b386`}
+              style={{ minWidth: "320px", height: "720px" }}
+            />
+          </div>
+        </details>
       </section>
 
       {/* Reviews removed per request */}
