@@ -99,10 +99,10 @@ export default function Landing() {
             Choose an available slot directly on the calendar below. Tell me a bit about your level and goals.
           </StepCard>
           <StepCard n="2" title="Receive a payment link" icon={<CreditCard className="h-5 w-5" />}>
-            I'll personally send you a secure payment link by email. (Allow a few hours during night time in Europe.)
+            I'll personally send you a secure payment link by email from <strong>yvestrionnaire@gmail.com</strong>. (Allow a few hours during night time in Europe.)
           </StepCard>
-          <StepCard n="3" title="Lesson confirmed" icon={<CheckCircle className="h-5 w-5" />}>
-            Once payment is received, I confirm your booking and send the meeting link. À bientôt !
+          <StepCard n="3" title="Lesson confirmed on Google Meet" icon={<CheckCircle className="h-5 w-5" />}>
+            Once payment is received, I confirm your booking by email and send you a <strong>Google Meet</strong> link for the lesson. À bientôt !
           </StepCard>
         </div>
       </Section>
