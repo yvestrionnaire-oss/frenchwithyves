@@ -259,7 +259,7 @@ function SpecialtiesPanel() {
     ["Student Goals", ["DALF", "DELF", "Business French", "Interview Preparation", "Travel French", "Weekly guided learning"]],
   ];
   return (
-    <div className="grid gap-5 md:grid-cols-3">
+    <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
       {groups.map(([g, items]) => (
         <div key={g}>
           <h4 className="mb-3 font-bold">{g}</h4>
