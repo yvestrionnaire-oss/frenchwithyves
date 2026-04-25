@@ -122,19 +122,8 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Reviews */}
-      <Section title="What students say">
-        <div className="grid gap-6 md:grid-cols-3">
-          {REVIEWS.map(([name, q]) => (
-            <blockquote className="fw-card p-6" key={name}>
-              <Quote className="mb-3 h-8 w-8 text-primary" />
-              <p className="text-primary">★★★★★</p>
-              <p className="mt-2 italic text-secondaryText">"{q}"</p>
-              <div className="mt-4 text-sm font-bold">{name}</div>
-            </blockquote>
-          ))}
-        </div>
-      </Section>
+      {/* Reviews removed per request */}
+
 
       {/* Contact */}
       <section className="app-container py-10">
