@@ -3,8 +3,7 @@ import { BookOpen, CalendarDays, CheckCircle, CreditCard, Lightbulb, Laptop, Mai
 import portrait from "@/assets/yves-trionnaire-real.jpg";
 import introVideo from "@/assets/yves-introduction.mp4";
 
-// TODO: Replace with your real Calendly URL (e.g. https://calendly.com/yves-trionnaire/30min)
-const CALENDLY_URL = "https://calendly.com/your-handle/30min";
+const CALENDLY_URL = "https://calendly.com/yvestrionnaire";
 
 export default function Landing() {
   // Load Calendly inline-widget script once
