@@ -48,8 +48,8 @@ export default function Auth() {
         });
         if (error) throw error;
         toast({
-          title: "Check your inbox",
-          description: "We've sent you a confirmation email. Click the link to sign in.",
+          title: "Welcome!",
+          description: "Your account is ready.",
         });
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
