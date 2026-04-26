@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { BookOpen, CalendarDays, CheckCircle, CreditCard, Mail, Star, Target, Users } from "lucide-react";
+import { Link } from "react-router-dom";
+import { BookOpen, CalendarDays, CheckCircle, CreditCard, Mail, Send, Sparkles, Star, Target, Users, Wallet } from "lucide-react";
 import portrait from "@/assets/yves-trionnaire-real.jpg";
 import introVideo from "@/assets/yves-introduction.mp4";
+import { useAuth } from "@/lib/auth";
 
 export default function Landing() {
   return (
@@ -19,7 +21,7 @@ export default function Landing() {
             Private online French lessons for beginners, professionals, and long-term learners. Pick a time on my calendar — I'll send you a payment link, and once it's settled, your spot is confirmed.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <a href="#book" className="btn-primary"><CalendarDays className="h-4 w-4" /> Book a lesson</a>
+            <Link to="/auth?trial=1" className="btn-primary"><Sparkles className="h-4 w-4" /> Request free trial</Link>
             <a href="#about" className="btn-secondary">Learn more about Yves</a>
           </div>
           <p className="mt-6 flex items-center gap-2 text-sm text-secondaryText">
@@ -88,41 +90,54 @@ export default function Landing() {
 
       {/* How it works (payment flow) */}
       <Section title="How booking & payment works">
-        <div className="grid gap-6 md:grid-cols-3">
-          <StepCard n="1" title="Pick a time" icon={<CalendarDays className="h-5 w-5" />}>
-            Choose an available slot directly on the calendar below. Tell me a bit about your level and goals.
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          <StepCard n="1" title="Choose a package" icon={<BookOpen className="h-5 w-5" />}>
+            Sign up, then pick the package that fits your goals — single lesson, 5, 10 or 20.
           </StepCard>
-          <StepCard n="2" title="Receive a payment link" icon={<CreditCard className="h-5 w-5" />}>
-            I'll personally send you a secure payment link by email from <strong>yvestrionnaire@gmail.com</strong>. I'm based in Peru, so allow a few hours if you book overnight my time.
+          <StepCard n="2" title="Yves gets a notification" icon={<Mail className="h-5 w-5" />}>
+            Your request appears in my dashboard the moment you submit it.
           </StepCard>
-          <StepCard n="3" title="Lesson confirmed on Google Meet" icon={<CheckCircle className="h-5 w-5" />}>
-            Once payment is received, I confirm your booking by email and send you a <strong>Google Meet</strong> link for the lesson. À bientôt !
+          <StepCard n="3" title="Payment link by email" icon={<Send className="h-5 w-5" />}>
+            I personally email you a secure payment link from <strong>yvestrionnaire@gmail.com</strong>.
+          </StepCard>
+          <StepCard n="4" title="You pay" icon={<CreditCard className="h-5 w-5" />}>
+            You complete the payment, and my bank notifies me as soon as it lands.
+          </StepCard>
+          <StepCard n="5" title="I confirm your credits" icon={<Wallet className="h-5 w-5" />}>
+            I confirm payment in your dashboard — credits appear on your account immediately.
+          </StepCard>
+          <StepCard n="6" title="Book your slots" icon={<CalendarDays className="h-5 w-5" />}>
+            The calendar unlocks. Pick any open time — a <strong>Google Meet</strong> invite is sent for each lesson.
           </StepCard>
         </div>
-        <p className="mx-auto mt-6 max-w-2xl text-center text-sm text-secondaryText">
-          <strong>Need to reschedule?</strong> No problem — just email me <strong>before</strong> your scheduled lesson starts and we'll find a new time that works for you.
+        <div className="mx-auto mt-8 max-w-2xl rounded-lg border border-primary/30 bg-primary/5 p-5 text-center">
+          <p className="text-sm">
+            <strong>🎁 Free trial lesson</strong> — request it, I'll confirm by email, and you can book a 30-min slot at no cost.
+          </p>
+        </div>
+        <p className="mx-auto mt-4 max-w-2xl text-center text-sm text-secondaryText">
+          <strong>Need to reschedule?</strong> Cancel from your dashboard up to 5 minutes before your lesson and book a new slot any time.
         </p>
       </Section>
 
       {/* Booking CTA */}
       <section id="book" className="app-container py-10">
-        <h2 className="section-title mb-3 text-center">Book your lesson</h2>
+        <h2 className="section-title mb-3 text-center">Ready to start?</h2>
         <p className="mx-auto mb-7 max-w-2xl text-center text-secondaryText">
-          Pick one slot for a free 30-min trial, or pre-book your whole package of 5, 10 or 20 lessons in one go.
-          A <strong>Google Meet</strong> invite is sent to your email for every lesson.
+          Create your free account in 30 seconds. Request a trial or a full package — booking unlocks as soon as payment is confirmed.
         </p>
 
         <div className="fw-card mx-auto max-w-3xl border-2 border-primary/40 bg-primary/5 p-6 text-center">
-          <h3 className="mb-2 text-xl font-bold">Open the booking calendar</h3>
+          <h3 className="mb-2 text-xl font-bold">Get started</h3>
           <p className="mx-auto mb-5 max-w-xl text-sm text-secondaryText">
-            No signup needed. Pick your slots, enter your name & email, and you're done.
-            You can reschedule any lesson up to 5 minutes before it starts.
+            Sign up, pick a package or request a trial, and we'll be in touch by email.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <a href="/book" className="btn-primary"><CalendarDays className="h-4 w-4" /> Book a lesson</a>
+            <Link to="/auth?trial=1" className="btn-primary"><Sparkles className="h-4 w-4" /> Request free trial</Link>
+            <Link to="/auth" className="btn-secondary"><CalendarDays className="h-4 w-4" /> Sign up & pick a package</Link>
           </div>
-          <p className="mt-3 text-xs text-secondaryText">
-            🎁 Free 30-min trial available — no payment required.
+          <p className="mt-4 text-xs text-secondaryText">
+            Already have an account? <Link to="/auth?mode=signin" className="font-semibold text-primary hover:underline">Sign in</Link>
           </p>
         </div>
       </section>
@@ -151,6 +166,8 @@ export default function Landing() {
 /* ---------------- helpers ---------------- */
 
 function Header() {
+  const { user, role } = useAuth();
+  const dashboardHref = role === "teacher" ? "/teacher" : "/student";
   return (
     <header className="border-b border-border bg-card">
       <div className="app-container flex items-center justify-between py-4">
@@ -163,10 +180,17 @@ function Header() {
         </a>
         <nav className="hidden items-center gap-6 text-sm font-semibold text-secondaryText md:flex">
           <a href="#about" className="hover:text-primary">About</a>
-          <a href="#book" className="hover:text-primary">Book</a>
+          <a href="#book" className="hover:text-primary">How it works</a>
           <a href="mailto:yvestrionnaire@gmail.com" className="hover:text-primary">Contact</a>
         </nav>
-        <a href="#book" className="btn-primary !py-2 !text-xs">Book a lesson</a>
+        {user ? (
+          <Link to={dashboardHref} className="btn-primary !py-2 !text-xs">Go to dashboard</Link>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Link to="/auth?mode=signin" className="text-sm font-semibold text-secondaryText hover:text-primary">Sign in</Link>
+            <Link to="/auth" className="btn-primary !py-2 !text-xs">Sign up</Link>
+          </div>
+        )}
       </div>
     </header>
   );

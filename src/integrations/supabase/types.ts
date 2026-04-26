@@ -40,40 +40,34 @@ export type Database = {
           created_at: string
           duration_minutes: number
           google_event_id: string | null
-          guest_email: string | null
-          guest_name: string | null
           id: string
           lesson_type: string
           meet_link: string | null
           scheduled_at: string
           status: Database["public"]["Enums"]["lesson_status"]
-          student_id: string | null
+          student_id: string
         }
         Insert: {
           created_at?: string
           duration_minutes?: number
           google_event_id?: string | null
-          guest_email?: string | null
-          guest_name?: string | null
           id?: string
           lesson_type?: string
           meet_link?: string | null
           scheduled_at: string
           status?: Database["public"]["Enums"]["lesson_status"]
-          student_id?: string | null
+          student_id: string
         }
         Update: {
           created_at?: string
           duration_minutes?: number
           google_event_id?: string | null
-          guest_email?: string | null
-          guest_name?: string | null
           id?: string
           lesson_type?: string
           meet_link?: string | null
           scheduled_at?: string
           status?: Database["public"]["Enums"]["lesson_status"]
-          student_id?: string | null
+          student_id?: string
         }
         Relationships: []
       }
@@ -210,6 +204,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_trial: { Args: { _request_id: string }; Returns: undefined }
       assign_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -217,22 +212,18 @@ export type Database = {
         }
         Returns: undefined
       }
-      book_guest_lessons: {
-        Args: {
-          _duration_minutes?: number
-          _guest_email: string
-          _guest_name: string
-          _lesson_type?: string
-          _slots: string[]
-        }
-        Returns: string[]
+      book_lesson: {
+        Args: { _lesson_type?: string; _scheduled_at: string }
+        Returns: string
       }
-      book_lesson: { Args: { _scheduled_at: string }; Returns: string }
       book_lessons: {
         Args: { _slots: string[]; _student_id: string }
         Returns: string[]
       }
+      bootstrap_admin: { Args: { _admin_email: string }; Returns: undefined }
       cancel_lesson: { Args: { _lesson_id: string }; Returns: undefined }
+      cancel_request: { Args: { _request_id: string }; Returns: undefined }
+      confirm_paid: { Args: { _request_id: string }; Returns: undefined }
       credit_balance: { Args: never; Returns: number }
       credit_balance_for: { Args: { _student_id: string }; Returns: number }
       has_role: {
@@ -242,9 +233,13 @@ export type Database = {
         }
         Returns: boolean
       }
-      reschedule_guest_lesson: {
-        Args: { _guest_email: string; _lesson_id: string; _new_slot: string }
+      mark_payment_link_sent: {
+        Args: { _request_id: string }
         Returns: undefined
+      }
+      request_package: {
+        Args: { _notes?: string; _package_id: string }
+        Returns: string
       }
       reschedule_lesson: {
         Args: { _lesson_id: string; _new_slot: string }
@@ -261,7 +256,12 @@ export type Database = {
     Enums: {
       app_role: "student" | "teacher"
       lesson_status: "scheduled" | "completed" | "cancelled"
-      purchase_status: "pending" | "paid" | "cancelled"
+      purchase_status:
+        | "pending"
+        | "paid"
+        | "cancelled"
+        | "payment_link_sent"
+        | "approved"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -391,7 +391,13 @@ export const Constants = {
     Enums: {
       app_role: ["student", "teacher"],
       lesson_status: ["scheduled", "completed", "cancelled"],
-      purchase_status: ["pending", "paid", "cancelled"],
+      purchase_status: [
+        "pending",
+        "paid",
+        "cancelled",
+        "payment_link_sent",
+        "approved",
+      ],
     },
   },
 } as const
