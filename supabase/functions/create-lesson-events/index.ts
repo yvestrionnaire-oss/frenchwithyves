@@ -1,5 +1,6 @@
 // Edge function: creates a Google Calendar event with auto-generated Meet link
-// for each lesson in the provided list, then stores meet_link + google_event_id back on the lesson row.
+// for each lesson, then stores meet_link + google_event_id back on the lesson row.
+// Reads student email from the profiles table.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -36,10 +37,9 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Fetch lessons (guest info lives on the row)
     const { data: lessons, error: fetchErr } = await supabase
       .from("lessons")
-      .select("id, scheduled_at, duration_minutes, guest_name, guest_email, lesson_type")
+      .select("id, scheduled_at, duration_minutes, lesson_type, student_id")
       .in("id", body.lessonIds);
 
     if (fetchErr) throw fetchErr;
@@ -50,14 +50,23 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Pull profiles in one query
+    const studentIds = Array.from(new Set(lessons.map((l) => l.student_id).filter(Boolean)));
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, email, full_name")
+      .in("id", studentIds);
+    const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
+
     const results: Array<{ lessonId: string; meetLink: string | null; eventId: string | null; error?: string }> = [];
 
     for (const lesson of lessons) {
       const start = new Date(lesson.scheduled_at);
       const end = new Date(start.getTime() + (lesson.duration_minutes ?? 60) * 60_000);
       const isTrial = lesson.lesson_type === "trial";
-      const studentName = lesson.guest_name ?? "Student";
-      const studentEmail = lesson.guest_email ?? null;
+      const profile = profileMap.get(lesson.student_id);
+      const studentName = profile?.full_name ?? "Student";
+      const studentEmail = profile?.email ?? null;
 
       const eventBody = {
         summary: isTrial
