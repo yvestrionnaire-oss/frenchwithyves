@@ -259,11 +259,11 @@ export default function TeacherDashboard() {
           </section>
         )}
 
-        {/* Calendar */}
+        {/* Weekly availability calendar */}
         <section>
-          <h2 className="mb-3 text-xl font-semibold">Your calendar</h2>
+          <h2 className="mb-3 text-xl font-semibold">Weekly schedule</h2>
           <p className="mb-3 text-sm text-muted-foreground">
-            Live view of all booked lessons and your Google Calendar. Updates automatically.
+            30-min slots in your local time. Booked lessons + Google Calendar busy times. Updates live.
           </p>
           <TeacherCalendar profiles={profiles} />
         </section>
