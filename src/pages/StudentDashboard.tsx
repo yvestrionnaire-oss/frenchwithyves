@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { LessonsView, type LessonItem, hueFromString, initialsFromName } from "@/components/LessonsView";
+import { LessonsView, type LessonItem, hueFromString } from "@/components/LessonsView";
 
 type Lesson = {
   id: string;
