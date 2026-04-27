@@ -72,6 +72,7 @@ export default function TeacherDashboard() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [rescheduleLessonId, setRescheduleLessonId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
