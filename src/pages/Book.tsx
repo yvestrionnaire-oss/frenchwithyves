@@ -175,9 +175,19 @@ export default function Book() {
     return false;
   }
 
-  const duration = mode === "trial" ? 30 : 60;
-  const canBook = mode === "trial" ? trialApproved && !trialUsed : credits >= 1;
-  const maxSlots = mode === "trial" ? 1 : credits;
+  // Reschedule mode → derive duration from existing lesson; only 1 selection allowed
+  const rescheduleLesson = useMemo(
+    () => (rescheduleId ? lessons.find((l) => l.id === rescheduleId) : null),
+    [rescheduleId, lessons],
+  );
+  const isRescheduling = !!rescheduleLesson;
+  const duration = isRescheduling
+    ? rescheduleLesson!.duration_minutes
+    : mode === "trial"
+      ? 30
+      : 60;
+  const canBook = isRescheduling ? true : mode === "trial" ? trialApproved && !trialUsed : credits >= 1;
+  const maxSlots = isRescheduling ? 1 : mode === "trial" ? 1 : credits;
 
   function toggle(slot: Date) {
     if (!canBook) return;
