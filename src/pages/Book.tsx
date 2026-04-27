@@ -58,9 +58,6 @@ function isWithinTeachingHours(slot: Date, durationMin: number): boolean {
   if (end <= start) return false;
   return start >= PET_START_MIN && end <= PET_END_MIN;
 }
-function fmtHourLabel(d: Date): string {
-  return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
-}
 
 export default function Book() {
   const { user } = useAuth();
