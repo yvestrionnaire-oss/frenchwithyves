@@ -2,14 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   CalendarDays,
+  CheckCircle2,
   Clock,
   CreditCard,
-  ExternalLink,
   GraduationCap,
   Loader2,
   LogOut,
+  MailQuestion,
   Sparkles,
-  Video,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { LessonsView, type LessonItem, hueFromString, initialsFromName } from "@/components/LessonsView";
 
 type Lesson = {
   id: string;
@@ -45,15 +46,14 @@ type Request = {
   created_at: string;
   package_id: string;
 };
-
-const fmtDateTime = (iso: string) =>
-  new Date(iso).toLocaleString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+type Proposal = {
+  id: string;
+  lesson_id: string;
+  message: string | null;
+  proposed_slot: string | null;
+  status: string;
+  created_at: string;
+};
 
 export default function StudentDashboard() {
   const { user, signOut } = useAuth();
@@ -62,12 +62,19 @@ export default function StudentDashboard() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [packages, setPackages] = useState<Pkg[]>([]);
   const [requests, setRequests] = useState<Request[]>([]);
+  const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [requesting, setRequesting] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
     void loadAll();
+    const ch = supabase
+      .channel("student-dash")
+      .on("postgres_changes", { event: "*", schema: "public", table: "reschedule_proposals" }, () => void loadAll())
+      .on("postgres_changes", { event: "*", schema: "public", table: "lessons" }, () => void loadAll())
+      .subscribe();
+    return () => { void supabase.removeChannel(ch); };
   }, [user]);
 
   // Auto-request trial if ?trial=1 (signup flow from landing)
@@ -88,7 +95,7 @@ export default function StudentDashboard() {
 
   async function loadAll() {
     setLoading(true);
-    const [bal, l, p, r] = await Promise.all([
+    const [bal, l, p, r, prop] = await Promise.all([
       supabase.rpc("credit_balance"),
       supabase
         .from("lessons")
@@ -99,11 +106,17 @@ export default function StudentDashboard() {
         .from("purchase_requests")
         .select("id, status, credits_granted, created_at, package_id")
         .order("created_at", { ascending: false }),
+      supabase
+        .from("reschedule_proposals")
+        .select("id, lesson_id, message, proposed_slot, status, created_at")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false }),
     ]);
     if (typeof bal.data === "number") setCredits(bal.data);
     setLessons((l.data ?? []) as Lesson[]);
     setPackages((p.data ?? []) as Pkg[]);
     setRequests((r.data ?? []) as Request[]);
+    setProposals((prop.data ?? []) as Proposal[]);
     setLoading(false);
   }
 
@@ -146,13 +159,25 @@ export default function StudentDashboard() {
     await loadAll();
   }
 
-  const upcoming = useMemo(
-    () =>
-      lessons.filter(
-        (l) => l.status !== "cancelled" && new Date(l.scheduled_at).getTime() > Date.now(),
-      ),
-    [lessons],
-  );
+  async function acceptProposal(id: string) {
+    const { error } = await supabase.rpc("student_accept_proposal", { _proposal_id: id });
+    if (error) {
+      toast({ title: "Failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Reschedule accepted" });
+    await loadAll();
+  }
+  async function declineProposal(id: string) {
+    const { error } = await supabase.rpc("student_decline_proposal", { _proposal_id: id });
+    if (error) {
+      toast({ title: "Failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Declined — pick a new time yourself" });
+    await loadAll();
+  }
+
   const past = useMemo(
     () =>
       lessons.filter(
@@ -163,6 +188,18 @@ export default function StudentDashboard() {
   const activeRequests = requests.filter((r) => r.status !== "cancelled");
   const trialApproved = requests.some((r) => r.status === "approved");
   const canBookTrial = trialApproved && !lessons.some((l) => l.lesson_type === "trial" && l.status !== "cancelled");
+
+  // Build LessonItem[] for the unified view
+  const lessonItems: LessonItem[] = useMemo(() => {
+    return lessons
+      .filter((l) => l.status !== "cancelled")
+      .map((l) => ({
+        ...l,
+        counterpartName: "Yves",
+        initials: "Y",
+        colorHue: hueFromString("Yves"),
+      }));
+  }, [lessons]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -221,30 +258,50 @@ export default function StudentDashboard() {
           </Card>
         </div>
 
-        {/* Pending requests */}
-        {activeRequests.length > 0 && (
+        {/* Reschedule proposals from teacher */}
+        {proposals.length > 0 && (
           <section>
-            <h2 className="mb-3 text-xl font-semibold">Your requests</h2>
-            <div className="space-y-2">
-              {activeRequests.map((r) => {
-                const pkg = packages.find((p) => p.id === r.package_id);
+            <h2 className="mb-3 text-xl font-semibold">📩 Reschedule requests from Yves</h2>
+            <div className="space-y-3">
+              {proposals.map((p) => {
+                const lesson = lessons.find((l) => l.id === p.lesson_id);
                 return (
-                  <Card key={r.id}>
-                    <CardContent className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <div className="font-medium">{pkg?.name ?? "Package"}</div>
-                        <div className="text-xs text-muted-foreground">
-                          Requested {new Date(r.created_at).toLocaleDateString()}
+                  <Card key={p.id} className="border-primary/40 bg-primary/5">
+                    <CardContent className="space-y-3 p-4">
+                      {lesson && (
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">Currently:</span>{" "}
+                          <span className="font-medium">
+                            {new Date(lesson.scheduled_at).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                          </span>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <RequestBadge status={r.status} />
-                        {(r.status === "pending" || r.status === "payment_link_sent") && (
-                          <Button variant="ghost" size="sm" onClick={() => cancelRequest(r.id)}>
-                            <X className="h-4 w-4" />
+                      )}
+                      {p.message && (
+                        <div className="rounded-lg border bg-background p-3 text-sm italic">"{p.message}"</div>
+                      )}
+                      {p.proposed_slot ? (
+                        <div className="rounded-lg border border-primary bg-background p-3">
+                          <div className="text-xs text-muted-foreground">Suggested time</div>
+                          <div className="text-base font-semibold">
+                            {new Date(p.proposed_slot).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Button size="sm" onClick={() => acceptProposal(p.id)}>
+                              <CheckCircle2 className="h-4 w-4" /> Accept
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => declineProposal(p.id)}>
+                              Pick another time
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-background p-3">
+                          <div className="text-sm text-muted-foreground">Yves asked you to pick a new time.</div>
+                          <Button asChild size="sm">
+                            <Link to={`/book?reschedule=${p.lesson_id}`}>Pick new time</Link>
                           </Button>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 );
@@ -253,76 +310,66 @@ export default function StudentDashboard() {
           </section>
         )}
 
-        {/* Upcoming lessons */}
+        {/* Pending requests — neater layout */}
+        {activeRequests.length > 0 && (
+          <section>
+            <h2 className="mb-3 text-xl font-semibold">Your requests</h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {activeRequests.map((r) => {
+                const pkg = packages.find((p) => p.id === r.package_id);
+                return (
+                  <Card key={r.id} className="overflow-hidden border-l-4 border-l-primary/60">
+                    <CardContent className="space-y-3 p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          {pkg?.is_free ? (
+                            <Sparkles className="h-5 w-5 text-primary" />
+                          ) : (
+                            <CreditCard className="h-5 w-5 text-primary" />
+                          )}
+                          <div>
+                            <div className="font-semibold">{pkg?.name ?? "Package"}</div>
+                            <div className="text-xs text-muted-foreground">
+                              Requested {new Date(r.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                            </div>
+                          </div>
+                        </div>
+                        {(r.status === "pending" || r.status === "payment_link_sent") && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => cancelRequest(r.id)}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      <RequestStatusLine status={r.status} />
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* Lessons (List/Calendar) */}
         <section>
-          <h2 className="mb-3 text-xl font-semibold">Upcoming lessons</h2>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Lessons</h2>
+          </div>
           {loading ? (
             <Card>
               <CardContent className="flex items-center justify-center py-10 text-muted-foreground">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
               </CardContent>
             </Card>
-          ) : upcoming.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
-                No upcoming lessons. {credits > 0 && "Book one from your calendar."}
-              </CardContent>
-            </Card>
           ) : (
-            <div className="space-y-2">
-              {upcoming.map((l) => (
-                <Card key={l.id}>
-                  <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-3">
-                      <CalendarDays className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <div className="font-medium">{fmtDateTime(l.scheduled_at)}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {l.lesson_type === "trial" ? "Trial · 30 min" : `Lesson · ${l.duration_minutes} min`}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {l.meet_link && (
-                        <Button asChild variant="outline" size="sm">
-                          <a href={l.meet_link} target="_blank" rel="noreferrer">
-                            <Video className="h-4 w-4" /> Join Meet <ExternalLink className="h-3 w-3" />
-                          </a>
-                        </Button>
-                      )}
-                      <Button asChild variant="outline" size="sm">
-                        <Link to={`/book?reschedule=${l.id}`}>Reschedule</Link>
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => cancelLesson(l.id)}>
-                        Cancel
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <LessonsView
+              lessons={lessonItems}
+              onReschedule={(id) => { window.location.href = `/book?reschedule=${id}`; }}
+              onCancel={cancelLesson}
+              rescheduleLabel="Reschedule"
+              emptyText={credits > 0 ? "Book one from your calendar." : "No lessons yet."}
+            />
           )}
         </section>
-
-        {/* Past lessons */}
-        {past.length > 0 && (
-          <section>
-            <h2 className="mb-3 text-xl font-semibold">Past lessons</h2>
-            <div className="space-y-2">
-              {past.slice(0, 5).map((l) => (
-                <Card key={l.id}>
-                  <CardContent className="flex items-center gap-3 p-3 text-sm">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <div className="flex-1">{fmtDateTime(l.scheduled_at)}</div>
-                    <Badge variant="secondary">
-                      {l.lesson_type === "trial" ? "Trial" : "Regular"}
-                    </Badge>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </section>
-        )}
 
         {/* Packages */}
         <section>
@@ -371,14 +418,18 @@ export default function StudentDashboard() {
   );
 }
 
-function RequestBadge({ status }: { status: Request["status"] }) {
-  const map: Record<Request["status"], { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
-    pending: { label: "Awaiting Yves", variant: "secondary" },
-    payment_link_sent: { label: "Payment link sent — check your email", variant: "outline" },
-    approved: { label: "Trial approved ✓", variant: "default" },
-    paid: { label: "Paid ✓", variant: "default" },
-    cancelled: { label: "Cancelled", variant: "destructive" },
+function RequestStatusLine({ status }: { status: Request["status"] }) {
+  const map: Record<Request["status"], { icon: React.ReactNode; label: string; tone: string }> = {
+    pending: { icon: <Clock className="h-4 w-4" />, label: "Awaiting Yves' approval", tone: "text-amber-700 dark:text-amber-400" },
+    payment_link_sent: { icon: <MailQuestion className="h-4 w-4" />, label: "Payment link sent — check your email", tone: "text-blue-700 dark:text-blue-400" },
+    approved: { icon: <CheckCircle2 className="h-4 w-4" />, label: "Trial approved — go book it!", tone: "text-emerald-700 dark:text-emerald-400" },
+    paid: { icon: <CheckCircle2 className="h-4 w-4" />, label: "Paid — credits added", tone: "text-emerald-700 dark:text-emerald-400" },
+    cancelled: { icon: <X className="h-4 w-4" />, label: "Cancelled", tone: "text-muted-foreground" },
   };
-  const { label, variant } = map[status];
-  return <Badge variant={variant}>{label}</Badge>;
+  const s = map[status];
+  return (
+    <div className={`flex items-center gap-2 text-sm font-medium ${s.tone}`}>
+      {s.icon} {s.label}
+    </div>
+  );
 }
