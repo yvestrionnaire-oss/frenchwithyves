@@ -161,13 +161,16 @@ export default function Book() {
   function isBusy(slotStart: Date, durationMin: number): boolean {
     const s = slotStart.getTime();
     const e = s + durationMin * 60_000;
-    // Also exclude any slot overlapping currently-selected slots
-    const sel = Array.from(selected).map((iso) => {
-      const start = new Date(iso).getTime();
-      return [start, start + 60 * 60_000] as [number, number];
-    });
-    return occupied.some(([os, oe]) => os < e && oe > s) ||
-           sel.some(([os, oe]) => os < e && oe > s && new Date(slotStart).toISOString() !== Array.from(selected).find((x) => new Date(x).getTime() === os));
+    if (occupied.some(([os, oe]) => os < e && oe > s)) return true;
+    // Also exclude slots overlapping with currently-selected (other) slots
+    const slotKey = slotStart.toISOString();
+    for (const iso of selected) {
+      if (iso === slotKey) continue;
+      const os = new Date(iso).getTime();
+      const oe = os + 60 * 60_000; // selected are always regular (60 min) when multi
+      if (os < e && oe > s) return true;
+    }
+    return false;
   }
 
   const duration = mode === "trial" ? 30 : 60;
