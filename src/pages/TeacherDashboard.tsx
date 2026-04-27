@@ -221,6 +221,9 @@ export default function TeacherDashboard() {
           <Stat icon={<Bell />} value={notifications.filter((n) => !n.read_at).length} label="New notifications" highlight={notifications.some((n) => !n.read_at)} />
         </div>
 
+        {/* Earnings */}
+        <EarningsSection lessons={lessons} requests={requests} packages={packages} />
+
         {/* Notifications feed */}
         {notifications.length > 0 && (
           <section>
