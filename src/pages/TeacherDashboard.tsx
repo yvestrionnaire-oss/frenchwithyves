@@ -42,6 +42,16 @@ type Lesson = {
   meet_link: string | null;
 };
 type StudentRow = { id: string; full_name: string | null; email: string | null; credits: number; lessonsCount: number };
+type Notification = {
+  id: string;
+  kind: "request_created" | "lesson_cancelled" | "lesson_rescheduled";
+  student_id: string;
+  lesson_id: string | null;
+  request_id: string | null;
+  payload: Record<string, unknown>;
+  read_at: string | null;
+  created_at: string;
+};
 
 const fmtDateTime = (iso: string) =>
   new Date(iso).toLocaleString(undefined, {
@@ -60,6 +70,7 @@ export default function TeacherDashboard() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -75,6 +86,11 @@ export default function TeacherDashboard() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "lessons" },
+        () => void loadAll(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "teacher_notifications" },
         () => void loadAll(),
       )
       .subscribe();
