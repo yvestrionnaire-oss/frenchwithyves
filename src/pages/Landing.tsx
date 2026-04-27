@@ -93,7 +93,8 @@ export default function Landing() {
 
 
       {/* How it works (payment flow) */}
-      <Section title="How booking & payment works">
+      <section id="how-it-works" className="app-container py-10">
+        <h2 className="section-title mb-7 text-center">How booking & payment works</h2>
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           <StepCard n="1" title="Choose a package" icon={<BookOpen className="h-5 w-5" />}>
             Sign up, then pick the package that fits your goals — single lesson, 5, 10 or 20.
@@ -122,7 +123,7 @@ export default function Landing() {
         <p className="mx-auto mt-4 max-w-2xl text-center text-sm text-secondaryText">
           <strong>Need to reschedule?</strong> Cancel from your dashboard up to 5 minutes before your lesson and book a new slot any time.
         </p>
-      </Section>
+      </section>
 
       {/* Booking CTA */}
       <section id="book" className="app-container py-10">
@@ -184,7 +185,7 @@ function Header() {
         </a>
         <nav className="hidden items-center gap-6 text-sm font-semibold text-secondaryText md:flex">
           <a href="#about" className="hover:text-primary">About</a>
-          <a href="#book" className="hover:text-primary">How it works</a>
+          <a href="#how-it-works" className="hover:text-primary">How it works</a>
           <a href="mailto:yvestrionnaire@gmail.com" className="hover:text-primary">Contact</a>
         </nav>
         {user ? (
