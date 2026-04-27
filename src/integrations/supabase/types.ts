@@ -181,6 +181,47 @@ export type Database = {
           },
         ]
       }
+      reschedule_proposals: {
+        Row: {
+          created_at: string
+          id: string
+          initiated_by: string
+          lesson_id: string
+          message: string | null
+          proposed_slot: string | null
+          responded_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          initiated_by: string
+          lesson_id: string
+          message?: string | null
+          proposed_slot?: string | null
+          responded_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          initiated_by?: string
+          lesson_id?: string
+          message?: string | null
+          proposed_slot?: string | null
+          responded_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reschedule_proposals_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teacher_notifications: {
         Row: {
           created_at: string
@@ -298,6 +339,18 @@ export type Database = {
           _exclude_lesson?: string
         }
         Returns: boolean
+      }
+      student_accept_proposal: {
+        Args: { _proposal_id: string }
+        Returns: undefined
+      }
+      student_decline_proposal: {
+        Args: { _proposal_id: string }
+        Returns: undefined
+      }
+      teacher_propose_reschedule: {
+        Args: { _lesson_id: string; _message: string; _proposed_slot?: string }
+        Returns: string
       }
     }
     Enums: {
