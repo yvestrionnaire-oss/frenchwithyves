@@ -15,7 +15,7 @@ export default function Auth() {
   const { user, role, loading } = useAuth();
   const initialMode = params.get("mode") === "signin" ? "signin" : "signup";
   const requestTrial = params.get("trial") === "1";
-  const [mode, setMode] = useState<"signup" | "signin">(initialMode);
+  const [mode, setMode] = useState<"signup" | "signin" | "forgot">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -51,14 +51,27 @@ export default function Auth() {
           title: "Welcome!",
           description: "Your account is ready.",
         });
-      } else {
+      } else if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast({ title: "Welcome back!" });
+      } else {
+        // forgot password
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+        toast({
+          title: "Check your email",
+          description: "If an account exists for that address, we sent a reset link.",
+        });
+        setMode("signin");
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
-      toast({ title: mode === "signup" ? "Signup failed" : "Sign in failed", description: msg, variant: "destructive" });
+      const failTitle =
+        mode === "signup" ? "Signup failed" : mode === "signin" ? "Sign in failed" : "Couldn't send reset email";
+      toast({ title: failTitle, description: msg, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -77,14 +90,16 @@ export default function Auth() {
       <main className="container mx-auto flex max-w-md flex-col px-4 py-12">
         <Card className="p-6">
           <h1 className="text-2xl font-semibold tracking-tight">
-            {mode === "signup" ? "Create your account" : "Sign in"}
+            {mode === "signup" ? "Create your account" : mode === "signin" ? "Sign in" : "Reset your password"}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {mode === "signup"
               ? requestTrial
                 ? "Sign up to request your free trial lesson."
                 : "Sign up to request a lesson package and book your slots."
-              : "Welcome back. Sign in to view your dashboard."}
+              : mode === "signin"
+                ? "Welcome back. Sign in to view your dashboard."
+                : "Enter your email and we'll send you a link to set a new password."}
           </p>
 
           <form onSubmit={onSubmit} className="mt-6 space-y-4">
@@ -112,18 +127,31 @@ export default function Auth() {
                 autoComplete="email"
               />
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                autoComplete={mode === "signup" ? "new-password" : "current-password"}
-              />
-            </div>
+            {mode !== "forgot" && (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  {mode === "signin" && (
+                    <button
+                      type="button"
+                      onClick={() => setMode("forgot")}
+                      className="text-xs font-medium text-primary hover:underline"
+                    >
+                      Forgot password?
+                    </button>
+                  )}
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                />
+              </div>
+            )}
 
             <Button type="submit" className="w-full" disabled={submitting}>
               {submitting ? (
@@ -132,8 +160,10 @@ export default function Auth() {
                 </>
               ) : mode === "signup" ? (
                 "Create account"
-              ) : (
+              ) : mode === "signin" ? (
                 "Sign in"
+              ) : (
+                "Send reset link"
               )}
             </Button>
           </form>
@@ -146,11 +176,18 @@ export default function Auth() {
                   Sign in
                 </button>
               </>
-            ) : (
+            ) : mode === "signin" ? (
               <>
                 New here?{" "}
                 <button onClick={() => setMode("signup")} className="font-medium text-primary hover:underline">
                   Create an account
+                </button>
+              </>
+            ) : (
+              <>
+                Remembered it?{" "}
+                <button onClick={() => setMode("signin")} className="font-medium text-primary hover:underline">
+                  Back to sign in
                 </button>
               </>
             )}

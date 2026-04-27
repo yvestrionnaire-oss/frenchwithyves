@@ -208,7 +208,10 @@ export default function StudentDashboard() {
           <Link to="/" className="text-lg font-semibold tracking-tight">
             French with Yves
           </Link>
-          <div className="flex items-center gap-3 text-sm">
+          <div className="flex items-center gap-2 text-sm sm:gap-3">
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/about">About Yves</Link>
+            </Button>
             <span className="text-muted-foreground hidden sm:inline">{user?.email}</span>
             <Button variant="ghost" size="sm" onClick={signOut}>
               <LogOut className="h-4 w-4" /> Sign out
