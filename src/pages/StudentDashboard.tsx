@@ -217,7 +217,7 @@ export default function StudentDashboard() {
         </div>
       </header>
 
-      <main className="container mx-auto max-w-5xl px-4 py-8 space-y-8">
+      <main className="container mx-auto max-w-6xl px-4 py-8 space-y-8">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Your dashboard</h1>
           <p className="mt-1 text-muted-foreground">Manage lessons, request packages, and book your slots.</p>
