@@ -15,7 +15,7 @@ export default function Auth() {
   const { user, role, loading } = useAuth();
   const initialMode = params.get("mode") === "signin" ? "signin" : "signup";
   const requestTrial = params.get("trial") === "1";
-  const [mode, setMode] = useState<"signup" | "signin">(initialMode);
+  const [mode, setMode] = useState<"signup" | "signin" | "forgot">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -51,14 +51,27 @@ export default function Auth() {
           title: "Welcome!",
           description: "Your account is ready.",
         });
-      } else {
+      } else if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast({ title: "Welcome back!" });
+      } else {
+        // forgot password
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+        toast({
+          title: "Check your email",
+          description: "If an account exists for that address, we sent a reset link.",
+        });
+        setMode("signin");
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
-      toast({ title: mode === "signup" ? "Signup failed" : "Sign in failed", description: msg, variant: "destructive" });
+      const failTitle =
+        mode === "signup" ? "Signup failed" : mode === "signin" ? "Sign in failed" : "Couldn't send reset email";
+      toast({ title: failTitle, description: msg, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
