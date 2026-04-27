@@ -93,7 +93,8 @@ export default function Landing() {
 
 
       {/* How it works (payment flow) */}
-      <Section title="How booking & payment works">
+      <section id="how-it-works" className="app-container py-10">
+        <h2 className="section-title mb-7 text-center">How booking & payment works</h2>
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           <StepCard n="1" title="Choose a package" icon={<BookOpen className="h-5 w-5" />}>
             Sign up, then pick the package that fits your goals — single lesson, 5, 10 or 20.
