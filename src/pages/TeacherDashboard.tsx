@@ -10,7 +10,6 @@ import {
   Mail,
   Send,
   Users,
-  Video,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,6 +19,8 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { TeacherCalendar } from "@/components/TeacherCalendar";
+import { LessonsView, type LessonItem, hueFromString, initialsFromName } from "@/components/LessonsView";
+import { TeacherRescheduleDialog } from "@/components/TeacherRescheduleDialog";
 
 type Pkg = { id: string; name: string; price_cents: number; is_free: boolean; credits: number };
 type Profile = { id: string; full_name: string | null; email: string | null };
