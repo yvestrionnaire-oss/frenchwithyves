@@ -212,16 +212,59 @@ export default function TeacherDashboard() {
         </div>
 
         {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-4">
           <Stat icon={<Users />} value={students.length} label="Students" />
-          <Stat
-            icon={<Mail />}
-            value={pendingRequests.length}
-            label="Pending requests"
-            highlight={pendingRequests.length > 0}
-          />
+          <Stat icon={<Mail />} value={pendingRequests.length} label="Pending requests" highlight={pendingRequests.length > 0} />
           <Stat icon={<CalendarDays />} value={upcoming.length} label="Upcoming lessons" />
+          <Stat icon={<Bell />} value={notifications.filter((n) => !n.read_at).length} label="New notifications" highlight={notifications.some((n) => !n.read_at)} />
         </div>
+
+        {/* Notifications feed */}
+        {notifications.length > 0 && (
+          <section>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Recent activity</h2>
+              {notifications.some((n) => !n.read_at) && (
+                <Button variant="ghost" size="sm" onClick={markAllRead}>Mark all read</Button>
+              )}
+            </div>
+            <Card>
+              <CardContent className="divide-y p-0">
+                {notifications.slice(0, 10).map((n) => {
+                  const profile = profileMap.get(n.student_id);
+                  const isUnread = !n.read_at;
+                  let label = "";
+                  if (n.kind === "request_created") label = `${profile?.full_name ?? "Student"} requested a package`;
+                  else if (n.kind === "lesson_cancelled") label = `${profile?.full_name ?? "Student"} cancelled a lesson`;
+                  else if (n.kind === "lesson_rescheduled") label = `${profile?.full_name ?? "Student"} rescheduled a lesson`;
+                  return (
+                    <div key={n.id} className={`flex items-center gap-3 p-3 text-sm ${isUnread ? "bg-primary/5" : ""}`}>
+                      {isUnread && <span className="h-2 w-2 rounded-full bg-primary" />}
+                      <div className="flex-1">
+                        <div className={isUnread ? "font-medium" : ""}>{label}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(n.created_at).toLocaleString()} · {profile?.email}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+            <p className="mt-2 text-xs text-muted-foreground">
+              💡 Want these as emails to yvestrionnaire@gmail.com? You'll need to set up an email domain (paid).
+            </p>
+          </section>
+        )}
+
+        {/* Calendar */}
+        <section>
+          <h2 className="mb-3 text-xl font-semibold">Your calendar</h2>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Live view of all booked lessons and your Google Calendar. Updates automatically.
+          </p>
+          <TeacherCalendar profiles={profiles} />
+        </section>
 
         {/* Pending requests — center of attention */}
         <section>
