@@ -200,8 +200,7 @@ export default function Book() {
       if (next.has(key)) next.delete(key);
       else {
         if (next.size >= maxSlots) {
-          // For trial: replace selection. For regular: ignore.
-          if (mode === "trial") {
+          if (mode === "trial" || isRescheduling) {
             next.clear();
             next.add(key);
           } else {
@@ -218,6 +217,23 @@ export default function Book() {
     if (selected.size === 0) return;
     setSubmitting(true);
     const slots = Array.from(selected).sort();
+
+    if (isRescheduling && rescheduleLesson) {
+      const { error } = await supabase.rpc("reschedule_lesson", {
+        _lesson_id: rescheduleLesson.id,
+        _new_slot: slots[0],
+      });
+      if (error) {
+        toast({ title: "Reschedule failed", description: error.message, variant: "destructive" });
+        setSubmitting(false);
+        return;
+      }
+      await supabase.functions.invoke("reschedule-lesson-event", { body: { lessonId: rescheduleLesson.id } });
+      toast({ title: "Lesson rescheduled" });
+      setSubmitting(false);
+      navigate("/student");
+      return;
+    }
 
     let lessonIds: string[] = [];
     if (mode === "trial") {
