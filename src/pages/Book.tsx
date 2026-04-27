@@ -423,7 +423,7 @@ export default function Book() {
                     {Array.from({ length: 7 }).map((_, day) => {
                       const slot = slotDate(day, hour, minute);
                       const isPast = slot.getTime() < Date.now();
-                      const slotKey = slot.toISOString();
+
 
                       // For 60-min bookings, the lesson covers TWO 30-min cells.
                       // We anchor each lesson to its starting 30-min slot — that's the actual button.
