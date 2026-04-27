@@ -188,6 +188,13 @@ export default function Book() {
   const canBook = isRescheduling ? true : mode === "trial" ? trialApproved && !trialUsed : credits >= 1;
   const maxSlots = isRescheduling ? 1 : mode === "trial" ? 1 : credits;
 
+  // For 60-min lessons, a cell is a "continuation" if a selection starts 30 min before it.
+  function isContinuationOf(slot: Date): boolean {
+    if (duration !== 60) return false;
+    const prevIso = new Date(slot.getTime() - 30 * 60_000).toISOString();
+    return selected.has(prevIso);
+  }
+
   function toggle(slot: Date) {
     if (!canBook) return;
     if (slot.getTime() < Date.now()) return;
