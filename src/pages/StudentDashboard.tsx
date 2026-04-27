@@ -290,6 +290,9 @@ export default function StudentDashboard() {
                           </a>
                         </Button>
                       )}
+                      <Button asChild variant="outline" size="sm">
+                        <Link to={`/book?reschedule=${l.id}`}>Reschedule</Link>
+                      </Button>
                       <Button variant="ghost" size="sm" onClick={() => cancelLesson(l.id)}>
                         Cancel
                       </Button>
