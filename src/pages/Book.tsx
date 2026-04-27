@@ -317,7 +317,7 @@ export default function Book() {
         </div>
 
         {/* Mode selector — only show toggle when both options exist */}
-        {trialApproved && !trialUsed && credits >= 1 && (
+        {!isRescheduling && trialApproved && !trialUsed && credits >= 1 && (
           <Card className="mb-6 p-4">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm text-muted-foreground mr-2">Booking:</span>
