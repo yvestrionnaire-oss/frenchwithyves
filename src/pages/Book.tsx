@@ -286,23 +286,33 @@ export default function Book() {
             <ArrowLeft className="h-4 w-4" /> Back to dashboard
           </Link>
           <div className="flex items-center gap-2">
-            {mode === "regular" && (
-              <Badge variant="secondary">
-                {credits} credit{credits === 1 ? "" : "s"} · {credits} lesson{credits === 1 ? "" : "s"} to book
-              </Badge>
+            {isRescheduling ? (
+              <Badge variant="secondary">Rescheduling · {duration} min</Badge>
+            ) : (
+              <>
+                {mode === "regular" && (
+                  <Badge variant="secondary">
+                    {credits} credit{credits === 1 ? "" : "s"} · {credits} lesson{credits === 1 ? "" : "s"} to book
+                  </Badge>
+                )}
+                {mode === "trial" && <Badge variant="secondary"><Sparkles className="h-3 w-3" /> Free trial · 30 min</Badge>}
+              </>
             )}
-            {mode === "trial" && <Badge variant="secondary"><Sparkles className="h-3 w-3" /> Free trial · 30 min</Badge>}
           </div>
         </div>
       </header>
 
       <main className="container mx-auto max-w-7xl px-4 py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-semibold tracking-tight">Pick your time{mode === "regular" && credits > 1 ? "s" : ""}</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">
+            {isRescheduling ? "Pick a new time" : `Pick your time${mode === "regular" && credits > 1 ? "s" : ""}`}
+          </h1>
           <p className="mt-1 text-muted-foreground">
-            {mode === "trial"
-              ? "Choose one 30-min slot for your free trial."
-              : `Yves teaches between 5:30 AM and 7:00 PM Peru time. Pick up to ${credits} slot${credits === 1 ? "" : "s"} — 1 credit = 1 lesson.`}
+            {isRescheduling
+              ? `Currently ${new Date(rescheduleLesson!.scheduled_at).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}. Pick a new slot below.`
+              : mode === "trial"
+                ? "Choose one 30-min slot for your free trial."
+                : `Yves teaches between 5:30 AM and 7:00 PM Peru time. Pick up to ${credits} slot${credits === 1 ? "" : "s"} — 1 credit = 1 lesson.`}
           </p>
         </div>
 
