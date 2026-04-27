@@ -147,10 +147,12 @@ export default function Book() {
     return d;
   }
 
-  // Pre-compute booked & busy intervals as sorted ranges (ms)
+  // Pre-compute booked & busy intervals as sorted ranges (ms).
+  // When rescheduling, exclude the lesson being moved.
   const occupied = useMemo(() => {
     const ranges: [number, number][] = [];
     for (const l of lessons) {
+      if (rescheduleId && l.id === rescheduleId) continue;
       const s = new Date(l.scheduled_at).getTime();
       ranges.push([s, s + l.duration_minutes * 60_000]);
     }
@@ -158,7 +160,7 @@ export default function Book() {
       ranges.push([new Date(b.start).getTime(), new Date(b.end).getTime()]);
     }
     return ranges;
-  }, [lessons, busy]);
+  }, [lessons, busy, rescheduleId]);
 
   function isBusy(slotStart: Date, durationMin: number): boolean {
     const s = slotStart.getTime();
