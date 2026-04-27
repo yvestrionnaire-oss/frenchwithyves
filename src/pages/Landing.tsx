@@ -347,6 +347,7 @@ function ResumePanel() {
     { title: "Education", items: [
       ["2016–2017", "DAEFLE — Diplôme d'Aptitude à l'Enseignement du Français Langue Étrangère", "Alliance Française, Barcelona"],
       ["2009–2012", "M.Sc. in International Business Management", "Philipps Universität Marburg"],
+      ["2009–2010", "Master's Degree", "INSEEC Business School, Paris"],
     ] },
     { title: "Teaching Experience", items: [
       ["2017–Present", "French Language Teacher", "Verbling · Online"],
