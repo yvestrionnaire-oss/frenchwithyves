@@ -102,7 +102,7 @@ export default function TeacherDashboard() {
 
   async function loadAll() {
     setLoading(true);
-    const [p, pr, l, prof] = await Promise.all([
+    const [p, pr, l, prof, n] = await Promise.all([
       supabase.from("packages").select("id, name, price_cents, is_free, credits").order("sort_order"),
       supabase
         .from("purchase_requests")
@@ -113,12 +113,28 @@ export default function TeacherDashboard() {
         .select("id, student_id, scheduled_at, duration_minutes, lesson_type, status, meet_link")
         .order("scheduled_at"),
       supabase.from("profiles").select("id, full_name, email"),
+      supabase
+        .from("teacher_notifications")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50),
     ]);
     setPackages((p.data ?? []) as Pkg[]);
     setRequests((pr.data ?? []) as Request[]);
     setLessons((l.data ?? []) as Lesson[]);
     setProfiles((prof.data ?? []) as Profile[]);
+    setNotifications((n.data ?? []) as Notification[]);
     setLoading(false);
+  }
+
+  async function markAllRead() {
+    const unread = notifications.filter((x) => !x.read_at).map((x) => x.id);
+    if (unread.length === 0) return;
+    await supabase
+      .from("teacher_notifications")
+      .update({ read_at: new Date().toISOString() })
+      .in("id", unread);
+    await loadAll();
   }
 
   const profileMap = useMemo(() => new Map(profiles.map((p) => [p.id, p])), [profiles]);
