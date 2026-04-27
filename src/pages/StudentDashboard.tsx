@@ -8,6 +8,7 @@ import {
   GraduationCap,
   Loader2,
   LogOut,
+  Mail,
   MailQuestion,
   Sparkles,
   X,
@@ -211,6 +212,11 @@ export default function StudentDashboard() {
           <div className="flex items-center gap-2 text-sm sm:gap-3">
             <Button asChild variant="ghost" size="sm">
               <Link to="/about">About Yves</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <a href="mailto:yvestrionnaire@gmail.com?subject=Question%20from%20your%20student">
+                <Mail className="h-4 w-4" /> Email Yves
+              </a>
             </Button>
             <span className="text-muted-foreground hidden sm:inline">{user?.email}</span>
             <Button variant="ghost" size="sm" onClick={signOut}>
