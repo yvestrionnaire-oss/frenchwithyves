@@ -217,7 +217,7 @@ export default function StudentDashboard() {
         </div>
       </header>
 
-      <main className="container mx-auto max-w-5xl px-4 py-8 space-y-8">
+      <main className="container mx-auto max-w-6xl px-4 py-8 space-y-8">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Your dashboard</h1>
           <p className="mt-1 text-muted-foreground">Manage lessons, request packages, and book your slots.</p>
@@ -310,65 +310,72 @@ export default function StudentDashboard() {
           </section>
         )}
 
-        {/* Pending requests — neater layout */}
-        {activeRequests.length > 0 && (
-          <section>
+        {/* Lessons (left) + Requests history (right) */}
+        <section className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Upcoming lessons</h2>
+            </div>
+            {loading ? (
+              <Card>
+                <CardContent className="flex items-center justify-center py-10 text-muted-foreground">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
+                </CardContent>
+              </Card>
+            ) : (
+              <LessonsView
+                lessons={lessonItems}
+                onReschedule={(id) => { window.location.href = `/book?reschedule=${id}`; }}
+                onCancel={cancelLesson}
+                rescheduleLabel="Reschedule"
+                emptyText={credits > 0 ? "Book one from your calendar." : "No lessons yet."}
+              />
+            )}
+          </div>
+
+          <aside className="lg:col-span-1">
             <h2 className="mb-3 text-xl font-semibold">Your requests</h2>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {activeRequests.map((r) => {
-                const pkg = packages.find((p) => p.id === r.package_id);
-                return (
-                  <Card key={r.id} className="overflow-hidden border-l-4 border-l-primary/60">
-                    <CardContent className="space-y-3 p-4">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          {pkg?.is_free ? (
-                            <Sparkles className="h-5 w-5 text-primary" />
-                          ) : (
-                            <CreditCard className="h-5 w-5 text-primary" />
-                          )}
-                          <div>
-                            <div className="font-semibold">{pkg?.name ?? "Package"}</div>
-                            <div className="text-xs text-muted-foreground">
-                              Requested {new Date(r.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+            {activeRequests.length === 0 ? (
+              <Card>
+                <CardContent className="py-6 text-center text-sm text-muted-foreground">
+                  No active requests.
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {activeRequests.map((r) => {
+                  const pkg = packages.find((p) => p.id === r.package_id);
+                  return (
+                    <Card key={r.id} className="overflow-hidden border-l-4 border-l-primary/60">
+                      <CardContent className="space-y-2 p-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            {pkg?.is_free ? (
+                              <Sparkles className="h-4 w-4 shrink-0 text-primary" />
+                            ) : (
+                              <CreditCard className="h-4 w-4 shrink-0 text-primary" />
+                            )}
+                            <div className="min-w-0">
+                              <div className="truncate text-sm font-semibold">{pkg?.name ?? "Package"}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {new Date(r.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                              </div>
                             </div>
                           </div>
+                          {(r.status === "pending" || r.status === "payment_link_sent") && (
+                            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => cancelRequest(r.id)}>
+                              <X className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
                         </div>
-                        {(r.status === "pending" || r.status === "payment_link_sent") && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => cancelRequest(r.id)}>
-                            <X className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                      <RequestStatusLine status={r.status} />
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
-        {/* Lessons (List/Calendar) */}
-        <section>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Lessons</h2>
-          </div>
-          {loading ? (
-            <Card>
-              <CardContent className="flex items-center justify-center py-10 text-muted-foreground">
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
-              </CardContent>
-            </Card>
-          ) : (
-            <LessonsView
-              lessons={lessonItems}
-              onReschedule={(id) => { window.location.href = `/book?reschedule=${id}`; }}
-              onCancel={cancelLesson}
-              rescheduleLabel="Reschedule"
-              emptyText={credits > 0 ? "Book one from your calendar." : "No lessons yet."}
-            />
-          )}
+                        <RequestStatusLine status={r.status} />
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </aside>
         </section>
 
         {/* Packages */}

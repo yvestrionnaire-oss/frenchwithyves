@@ -224,168 +224,170 @@ export default function TeacherDashboard() {
         {/* Earnings */}
         <EarningsSection lessons={lessons} requests={requests} packages={packages} />
 
-        {/* Notifications feed */}
-        {notifications.length > 0 && (
-          <section>
+        {/* Upcoming lessons (left) + Recent activity (right) */}
+        <section className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <h2 className="mb-3 text-xl font-semibold">Upcoming lessons</h2>
+            <LessonsView
+              lessons={upcoming.map((l) => {
+                const p = profileMap.get(l.student_id);
+                const name = p?.full_name ?? p?.email ?? "Student";
+                return {
+                  ...l,
+                  counterpartName: name,
+                  initials: initialsFromName(name),
+                  colorHue: hueFromString(p?.id ?? l.student_id),
+                } as LessonItem;
+              })}
+              onReschedule={(id) => setRescheduleLessonId(id)}
+              onCancel={async (id) => {
+                const { error } = await supabase.rpc("cancel_lesson", { _lesson_id: id });
+                if (error) {
+                  toast({ title: "Failed", description: error.message, variant: "destructive" });
+                  return;
+                }
+                toast({ title: "Lesson cancelled" });
+                await loadAll();
+              }}
+              rescheduleLabel="Request reschedule"
+              emptyText="No upcoming lessons."
+            />
+          </div>
+
+          <aside className="lg:col-span-1">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-xl font-semibold">Recent activity</h2>
               {notifications.some((n) => !n.read_at) && (
-                <Button variant="ghost" size="sm" onClick={markAllRead}>Mark all read</Button>
+                <Button variant="ghost" size="sm" onClick={markAllRead}>Mark read</Button>
               )}
             </div>
-            <Card>
-              <CardContent className="divide-y p-0">
-                {notifications.slice(0, 10).map((n) => {
-                  const profile = profileMap.get(n.student_id);
-                  const isUnread = !n.read_at;
-                  let label = "";
-                  if (n.kind === "request_created") label = `${profile?.full_name ?? "Student"} requested a package`;
-                  else if (n.kind === "lesson_cancelled") label = `${profile?.full_name ?? "Student"} cancelled a lesson`;
-                  else if (n.kind === "lesson_rescheduled") label = `${profile?.full_name ?? "Student"} rescheduled a lesson`;
-                  return (
-                    <div key={n.id} className={`flex items-center gap-3 p-3 text-sm ${isUnread ? "bg-primary/5" : ""}`}>
-                      {isUnread && <span className="h-2 w-2 rounded-full bg-primary" />}
-                      <div className="flex-1">
-                        <div className={isUnread ? "font-medium" : ""}>{label}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {new Date(n.created_at).toLocaleString()} · {profile?.email}
+            {notifications.length === 0 ? (
+              <Card>
+                <CardContent className="py-6 text-center text-sm text-muted-foreground">
+                  No activity yet.
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="divide-y p-0">
+                  {notifications.slice(0, 12).map((n) => {
+                    const profile = profileMap.get(n.student_id);
+                    const isUnread = !n.read_at;
+                    let label = "";
+                    if (n.kind === "request_created") label = `${profile?.full_name ?? "Student"} requested a package`;
+                    else if (n.kind === "lesson_cancelled") label = `${profile?.full_name ?? "Student"} cancelled a lesson`;
+                    else if (n.kind === "lesson_rescheduled") label = `${profile?.full_name ?? "Student"} rescheduled a lesson`;
+                    return (
+                      <div key={n.id} className={`flex items-start gap-2 p-3 text-xs ${isUnread ? "bg-primary/5" : ""}`}>
+                        {isUnread && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />}
+                        <div className="flex-1 min-w-0">
+                          <div className={isUnread ? "font-medium" : ""}>{label}</div>
+                          <div className="mt-0.5 text-[11px] text-muted-foreground">
+                            {new Date(n.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            )}
+          </aside>
+        </section>
+
+        {/* Weekly schedule (left) + Action needed (right) */}
+        <section className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <h2 className="mb-3 text-xl font-semibold">Weekly schedule</h2>
+            <p className="mb-3 text-sm text-muted-foreground">
+              30-min slots in your local time. Booked lessons + Google Calendar busy times. Updates live.
+            </p>
+            <TeacherCalendar profiles={profiles} />
+          </div>
+
+          <aside className="lg:col-span-1">
+            <h2 className="mb-3 text-xl font-semibold">
+              Action needed
+              {pendingRequests.length > 0 && (
+                <Badge className="ml-2" variant="destructive">
+                  {pendingRequests.length}
+                </Badge>
+              )}
+            </h2>
+            {loading ? (
+              <Card>
+                <CardContent className="flex items-center justify-center py-10 text-muted-foreground">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
+                </CardContent>
+              </Card>
+            ) : pendingRequests.length === 0 ? (
+              <Card>
+                <CardContent className="py-6 text-center text-sm text-muted-foreground">
+                  Nothing waiting on you. ☕
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {pendingRequests.map((r) => {
+                  const profile = profileMap.get(r.student_id);
+                  const pkg = pkgMap.get(r.package_id);
+                  const isTrial = pkg?.is_free;
+                  return (
+                    <Card key={r.id} className="border-l-4 border-l-primary/60">
+                      <CardContent className="space-y-3 p-3">
+                        <div>
+                          <div className="text-sm font-medium">
+                            {profile?.full_name ?? "Student"}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {pkg?.name} {!isTrial && pkg && `· $${(pkg.price_cents / 100).toFixed(0)}`}
+                          </div>
+                          <button
+                            onClick={() => copyEmail(profile?.email ?? null)}
+                            className="mt-1 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                          >
+                            <Copy className="h-3 w-3" /> {profile?.email}
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {isTrial ? (
+                            <Button size="sm" disabled={busy === r.id} onClick={() => action("approve_trial", r.id)}>
+                              <CheckCircle2 className="h-4 w-4" /> Approve
+                            </Button>
+                          ) : (
+                            <>
+                              {r.status === "pending" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={busy === r.id}
+                                  onClick={() => action("mark_payment_link_sent", r.id)}
+                                >
+                                  <Send className="h-4 w-4" /> Link sent
+                                </Button>
+                              )}
+                              {r.status === "payment_link_sent" && <Badge variant="outline" className="text-[10px]">Link sent ✓</Badge>}
+                              <Button size="sm" disabled={busy === r.id} onClick={() => action("confirm_paid", r.id)}>
+                                <CheckCircle2 className="h-4 w-4" /> Paid
+                              </Button>
+                            </>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={busy === r.id}
+                            onClick={() => action("cancel_request", r.id)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
                   );
                 })}
-              </CardContent>
-            </Card>
-            <p className="mt-2 text-xs text-muted-foreground">
-              💡 Want these as emails to yvestrionnaire@gmail.com? You'll need to set up an email domain (paid).
-            </p>
-          </section>
-        )}
-
-        {/* Weekly availability calendar */}
-        <section>
-          <h2 className="mb-3 text-xl font-semibold">Weekly schedule</h2>
-          <p className="mb-3 text-sm text-muted-foreground">
-            30-min slots in your local time. Booked lessons + Google Calendar busy times. Updates live.
-          </p>
-          <TeacherCalendar profiles={profiles} />
-        </section>
-
-        {/* Pending requests — center of attention */}
-        <section>
-          <h2 className="mb-3 text-xl font-semibold">
-            Action needed
-            {pendingRequests.length > 0 && (
-              <Badge className="ml-2" variant="destructive">
-                {pendingRequests.length}
-              </Badge>
+              </div>
             )}
-          </h2>
-          {loading ? (
-            <Card>
-              <CardContent className="flex items-center justify-center py-10 text-muted-foreground">
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
-              </CardContent>
-            </Card>
-          ) : pendingRequests.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
-                Nothing waiting on you. ☕
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-3">
-              {pendingRequests.map((r) => {
-                const profile = profileMap.get(r.student_id);
-                const pkg = pkgMap.get(r.package_id);
-                const isTrial = pkg?.is_free;
-                return (
-                  <Card key={r.id}>
-                    <CardContent className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between">
-                      <div className="flex-1">
-                        <div className="font-medium">
-                          {profile?.full_name ?? "Student"} —{" "}
-                          <span className="text-muted-foreground">
-                            {pkg?.name} {!isTrial && `· $${(pkg!.price_cents / 100).toFixed(0)}`}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => copyEmail(profile?.email ?? null)}
-                          className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-                        >
-                          <Copy className="h-3 w-3" /> {profile?.email}
-                        </button>
-                        <div className="mt-1 text-xs text-muted-foreground">
-                          Requested {new Date(r.created_at).toLocaleDateString()}
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        {isTrial ? (
-                          <Button size="sm" disabled={busy === r.id} onClick={() => action("approve_trial", r.id)}>
-                            <CheckCircle2 className="h-4 w-4" /> Approve trial
-                          </Button>
-                        ) : (
-                          <>
-                            {r.status === "pending" && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                disabled={busy === r.id}
-                                onClick={() => action("mark_payment_link_sent", r.id)}
-                              >
-                                <Send className="h-4 w-4" /> Mark link sent
-                              </Button>
-                            )}
-                            {r.status === "payment_link_sent" && <Badge variant="outline">Link sent ✓</Badge>}
-                            <Button size="sm" disabled={busy === r.id} onClick={() => action("confirm_paid", r.id)}>
-                              <CheckCircle2 className="h-4 w-4" /> Confirm paid
-                            </Button>
-                          </>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          disabled={busy === r.id}
-                          onClick={() => action("cancel_request", r.id)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </section>
-
-        {/* Lessons (List/Calendar toggle) */}
-        <section>
-          <h2 className="mb-3 text-xl font-semibold">Lessons</h2>
-          <LessonsView
-            lessons={upcoming.map((l) => {
-              const p = profileMap.get(l.student_id);
-              const name = p?.full_name ?? p?.email ?? "Student";
-              return {
-                ...l,
-                counterpartName: name,
-                initials: initialsFromName(name),
-                colorHue: hueFromString(p?.id ?? l.student_id),
-              } as LessonItem;
-            })}
-            onReschedule={(id) => setRescheduleLessonId(id)}
-            onCancel={async (id) => {
-              const { error } = await supabase.rpc("cancel_lesson", { _lesson_id: id });
-              if (error) {
-                toast({ title: "Failed", description: error.message, variant: "destructive" });
-                return;
-              }
-              toast({ title: "Lesson cancelled" });
-              await loadAll();
-            }}
-            rescheduleLabel="Request reschedule"
-            emptyText="No upcoming lessons."
-          />
+          </aside>
         </section>
 
         <TeacherRescheduleDialog
