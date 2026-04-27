@@ -139,6 +139,10 @@ export function TeacherCalendar({ profiles }: { profiles: Profile[] }) {
         </Button>
       </div>
 
+      <div className="border-b bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+        All times shown in your local timezone:{" "}
+        <strong className="text-foreground">{Intl.DateTimeFormat().resolvedOptions().timeZone}</strong>
+      </div>
       <div className="overflow-x-auto">
         <div className="grid min-w-[800px] grid-cols-[80px_repeat(7,1fr)] sticky top-0 z-10 border-b bg-card">
           <div className="p-2 text-xs font-medium text-muted-foreground">Local time</div>
@@ -163,13 +167,13 @@ export function TeacherCalendar({ profiles }: { profiles: Profile[] }) {
               <div
                 key={`${hour}-${minute}`}
                 className={cn(
-                  "grid min-w-[800px] grid-cols-[80px_repeat(7,1fr)] border-b last:border-b-0",
-                  isHourMark ? "border-border" : "border-border/40",
+                  "grid min-w-[800px] grid-cols-[80px_repeat(7,1fr)]",
+                  isHourMark ? "border-t-2 border-border" : "border-t border-dashed border-border/50",
                 )}
               >
                 <div className={cn(
-                  "border-r px-2 py-1 text-[11px]",
-                  isHourMark ? "font-semibold text-foreground" : "text-muted-foreground/70",
+                  "border-r px-2 py-1 text-[11px] flex items-start",
+                  isHourMark ? "font-bold text-foreground" : "text-muted-foreground/70",
                 )}>
                   {labelText}
                 </div>

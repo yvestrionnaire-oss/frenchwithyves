@@ -188,6 +188,13 @@ export default function Book() {
   const canBook = isRescheduling ? true : mode === "trial" ? trialApproved && !trialUsed : credits >= 1;
   const maxSlots = isRescheduling ? 1 : mode === "trial" ? 1 : credits;
 
+  // For 60-min lessons, a cell is a "continuation" if a selection starts 30 min before it.
+  function isContinuationOf(slot: Date): boolean {
+    if (duration !== 60) return false;
+    const prevIso = new Date(slot.getTime() - 30 * 60_000).toISOString();
+    return selected.has(prevIso);
+  }
+
   function toggle(slot: Date) {
     if (!canBook) return;
     if (slot.getTime() < Date.now()) return;
@@ -379,6 +386,12 @@ export default function Book() {
         </div>
 
         <Card className="overflow-hidden">
+          <div className="border-b bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+            All times shown in your local timezone:{" "}
+            <strong className="text-foreground">
+              {Intl.DateTimeFormat().resolvedOptions().timeZone}
+            </strong>
+          </div>
           <div className="overflow-x-auto">
             <div className="grid min-w-[800px] grid-cols-[80px_repeat(7,1fr)] sticky top-0 z-10 border-b bg-card">
               <div className="p-2 text-xs font-medium text-muted-foreground">Local time</div>
@@ -407,13 +420,13 @@ export default function Book() {
                   <div
                     key={`${hour}-${minute}`}
                     className={cn(
-                      "grid min-w-[800px] grid-cols-[80px_repeat(7,1fr)] border-b last:border-b-0",
-                      isHourMark ? "border-border" : "border-border/40",
+                      "grid min-w-[800px] grid-cols-[80px_repeat(7,1fr)]",
+                      isHourMark ? "border-t-2 border-border" : "border-t border-dashed border-border/50",
                     )}
                   >
                     <div className={cn(
-                      "border-r px-2 py-1 text-[11px]",
-                      isHourMark ? "font-semibold text-foreground" : "text-muted-foreground/70",
+                      "border-r px-2 py-1 text-[11px] flex items-start",
+                      isHourMark ? "font-bold text-foreground" : "text-muted-foreground/70",
                     )}>
                       {labelText}
                     </div>
@@ -421,25 +434,15 @@ export default function Book() {
                       const slot = slotDate(day, hour, minute);
                       const isPast = slot.getTime() < Date.now();
 
-
-                      // For 60-min bookings, the lesson covers TWO 30-min cells.
-                      // We anchor each lesson to its starting 30-min slot — that's the actual button.
-                      // The second half is rendered as a non-clickable continuation cell.
-                      const blockStart = duration === 60 && minute === 30
-                        ? new Date(slot.getTime() - 30 * 60_000)
-                        : slot;
-                      const isContinuation = duration === 60 && minute === 30
-                        ? selected.has(blockStart.toISOString())
-                        : false;
-                      const inHours = isWithinTeachingHours(blockStart, duration);
-                      const isSelected = selected.has(blockStart.toISOString());
-                      const occupiedNow =
-                        (duration === 60 && minute === 30
-                          ? false // continuation: parent slot already handled
-                          : isBusy(slot, duration)) && !isSelected;
+                      // 60-min lessons can start at ANY 30-min boundary (e.g. 8:30 → 9:30).
+                      // A cell is "continuation" only if a selection starts 30 min before it.
+                      const isContinuation = isContinuationOf(slot);
+                      const inHours = isWithinTeachingHours(slot, duration);
+                      const isSelected = selected.has(slot.toISOString());
+                      const occupiedNow = !isSelected && !isContinuation && isBusy(slot, duration);
 
                       const cellDisabled =
-                        isContinuation /* second half is non-clickable */ ||
+                        isContinuation /* second half of a selection is non-clickable */ ||
                         !inHours || isPast || occupiedNow || (!canBook && !isSelected);
 
                       return (
