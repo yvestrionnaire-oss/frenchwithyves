@@ -472,9 +472,9 @@ export default function Book() {
           {/* Legend */}
           <div className="flex flex-wrap items-center gap-4 border-t p-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm border bg-background" /> Available</span>
-            <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-primary" /> Selected</span>
+            <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-primary" /> Selected{duration === 60 && " (60 min = 2 cells)"}</span>
             <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-destructive/20" /> Booked / busy</span>
-            <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-muted" /> Outside hours</span>
+            <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-amber-100 dark:bg-amber-950/30" /> Outside teaching hours</span>
           </div>
         </Card>
 
