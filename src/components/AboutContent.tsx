@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BookOpen, CheckCircle, Star, Target, Users } from "lucide-react";
+import { BookOpen, CalendarDays, CheckCircle, CreditCard, Mail, Send, Star, Target, Users, Wallet } from "lucide-react";
 import portrait from "@/assets/yves-trionnaire-real.jpg";
 import introVideo from "@/assets/yves-introduction.mp4";
 
@@ -71,6 +71,52 @@ export default function AboutContent() {
         <h2 className="section-title mb-7 text-center">About Yves</h2>
         <ProfileTabs />
       </section>
+
+      {/* How booking & payment works */}
+      <section>
+        <h2 className="section-title mb-7 text-center">How booking & payment works</h2>
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          <StepCard n="1" title="Choose a package" icon={<BookOpen className="h-5 w-5" />}>
+            Sign up, then pick the package that fits your goals — single lesson, 5, 10 or 20.
+          </StepCard>
+          <StepCard n="2" title="Yves gets a notification" icon={<Mail className="h-5 w-5" />}>
+            Your request appears in my dashboard the moment you submit it.
+          </StepCard>
+          <StepCard n="3" title="Payment link by email" icon={<Send className="h-5 w-5" />}>
+            I personally email you a secure payment link from <strong>yvestrionnaire@gmail.com</strong>.
+          </StepCard>
+          <StepCard n="4" title="You pay" icon={<CreditCard className="h-5 w-5" />}>
+            You complete the payment, and my bank notifies me as soon as it lands.
+          </StepCard>
+          <StepCard n="5" title="I confirm your credits" icon={<Wallet className="h-5 w-5" />}>
+            I confirm payment in your dashboard — credits appear on your account immediately.
+          </StepCard>
+          <StepCard n="6" title="Book your slots" icon={<CalendarDays className="h-5 w-5" />}>
+            The calendar unlocks. Pick any open time — a <strong>Google Meet</strong> invite is sent for each lesson.
+          </StepCard>
+        </div>
+        <div className="mx-auto mt-8 max-w-2xl rounded-lg border border-primary/30 bg-primary/5 p-5 text-center">
+          <p className="text-sm">
+            <strong>🎁 Free trial lesson</strong> — request it, I'll confirm by email, and you can book a 30-min slot at no cost.
+          </p>
+        </div>
+        <p className="mx-auto mt-4 max-w-2xl text-center text-sm text-secondaryText">
+          <strong>Need to reschedule?</strong> Cancel from your dashboard up to 5 minutes before your lesson and book a new slot any time.
+        </p>
+      </section>
+    </div>
+  );
+}
+
+function StepCard({ n, title, icon, children }: { n: string; title: string; icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div className="fw-card p-6">
+      <div className="mb-4 flex items-center gap-3">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-xl font-bold text-primary">{n}</div>
+        <div className="text-primary">{icon}</div>
+      </div>
+      <h3 className="font-bold">{title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-secondaryText">{children}</p>
     </div>
   );
 }
