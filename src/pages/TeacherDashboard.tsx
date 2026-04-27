@@ -356,44 +356,49 @@ export default function TeacherDashboard() {
           )}
         </section>
 
-        {/* Upcoming lessons */}
+        {/* Lessons (List/Calendar toggle) */}
         <section>
-          <h2 className="mb-3 text-xl font-semibold">Upcoming lessons</h2>
-          {upcoming.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">No upcoming lessons.</CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-2">
-              {upcoming.map((l) => {
-                const profile = profileMap.get(l.student_id);
-                return (
-                  <Card key={l.id}>
-                    <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex items-center gap-3">
-                        <CalendarDays className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                          <div className="font-medium">{fmtDateTime(l.scheduled_at)}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {profile?.full_name ?? "Student"} · {profile?.email} ·{" "}
-                            {l.lesson_type === "trial" ? "Trial 30min" : `${l.duration_minutes}min`}
-                          </div>
-                        </div>
-                      </div>
-                      {l.meet_link && (
-                        <Button asChild variant="outline" size="sm">
-                          <a href={l.meet_link} target="_blank" rel="noreferrer">
-                            <Video className="h-4 w-4" /> Open Meet
-                          </a>
-                        </Button>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
+          <h2 className="mb-3 text-xl font-semibold">Lessons</h2>
+          <LessonsView
+            lessons={upcoming.map((l) => {
+              const p = profileMap.get(l.student_id);
+              const name = p?.full_name ?? p?.email ?? "Student";
+              return {
+                ...l,
+                counterpartName: name,
+                initials: initialsFromName(name),
+                colorHue: hueFromString(p?.id ?? l.student_id),
+              } as LessonItem;
+            })}
+            onReschedule={(id) => setRescheduleLessonId(id)}
+            onCancel={async (id) => {
+              const { error } = await supabase.rpc("cancel_lesson", { _lesson_id: id });
+              if (error) {
+                toast({ title: "Failed", description: error.message, variant: "destructive" });
+                return;
+              }
+              toast({ title: "Lesson cancelled" });
+              await loadAll();
+            }}
+            rescheduleLabel="Request reschedule"
+            emptyText="No upcoming lessons."
+          />
         </section>
+
+        <TeacherRescheduleDialog
+          open={!!rescheduleLessonId}
+          onOpenChange={(o) => { if (!o) setRescheduleLessonId(null); }}
+          lessonId={rescheduleLessonId}
+          currentSlotIso={rescheduleLessonId ? lessons.find((l) => l.id === rescheduleLessonId)?.scheduled_at ?? null : null}
+          studentName={(() => {
+            if (!rescheduleLessonId) return null;
+            const l = lessons.find((x) => x.id === rescheduleLessonId);
+            const p = l ? profileMap.get(l.student_id) : null;
+            return p?.full_name ?? p?.email ?? null;
+          })()}
+          onSent={loadAll}
+        />
+
 
         {/* Students */}
         <section>
