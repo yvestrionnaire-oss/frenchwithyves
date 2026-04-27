@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, CalendarCheck, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { ArrowLeft, CalendarCheck, ChevronLeft, ChevronRight, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,10 +9,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
-type AvailabilityRule = { day_of_week: number; slot_time: string };
-type LessonRow = { scheduled_at: string; status: string; lesson_type: string; student_id: string };
-
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+// Teacher's hours in Peru time (5:30am – 7:00pm)
+const PET_START_MIN = 5 * 60 + 30; // 330
+const PET_END_MIN = 19 * 60;       // 1140
+
+type LessonRow = {
+  id: string;
+  scheduled_at: string;
+  duration_minutes: number;
+  status: string;
+  lesson_type: string;
+  student_id: string;
+};
+type BusyRange = { start: string; end: string };
 
 function startOfWeek(d: Date) {
   const out = new Date(d);
@@ -27,121 +38,234 @@ function addDays(d: Date, n: number) {
   out.setDate(out.getDate() + n);
   return out;
 }
-function isoSlot(date: Date, time: string) {
-  const [h, m] = time.split(":").map(Number);
-  const out = new Date(date);
-  out.setHours(h, m ?? 0, 0, 0);
-  return out;
+function petMinutes(d: Date): number {
+  // Returns minutes-since-midnight in America/Lima for the given UTC instant.
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Lima",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const parts = fmt.formatToParts(d);
+  const h = Number(parts.find((p) => p.type === "hour")?.value ?? "0");
+  const m = Number(parts.find((p) => p.type === "minute")?.value ?? "0");
+  return h * 60 + m;
 }
-function fmtTime(time: string) {
-  const [h] = time.split(":").map(Number);
-  const ampm = h >= 12 ? "pm" : "am";
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return `${h12}${ampm}`;
+function isWithinTeachingHours(slot: Date, durationMin: number): boolean {
+  const start = petMinutes(slot);
+  const end = start + durationMin;
+  // Slot must not cross midnight in PET — if end is small but start is large, it wrapped.
+  if (end <= start) return false;
+  return start >= PET_START_MIN && end <= PET_END_MIN;
+}
+function fmtHourLabel(d: Date): string {
+  return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 
 export default function Book() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [rules, setRules] = useState<AvailabilityRule[]>([]);
-  const [booked, setBooked] = useState<Set<string>>(new Set());
+  const [params] = useSearchParams();
+  const rescheduleId = params.get("reschedule");
+  const [lessons, setLessons] = useState<LessonRow[]>([]);
+  const [busy, setBusy] = useState<BusyRange[]>([]);
   const [credits, setCredits] = useState(0);
-  const [trialAvailable, setTrialAvailable] = useState(false);
+  const [trialApproved, setTrialApproved] = useState(false);
   const [trialUsed, setTrialUsed] = useState(false);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [mode, setMode] = useState<"trial" | "regular">("regular");
   const [weekOffset, setWeekOffset] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   const weekStart = useMemo(() => addDays(startOfWeek(new Date()), weekOffset * 7), [weekOffset]);
+  const weekEnd = useMemo(() => addDays(weekStart, 7), [weekStart]);
 
   useEffect(() => {
     if (!user) return;
     void load();
-  }, [user]);
+  }, [user, weekStart.toISOString()]);
 
   async function load() {
     setLoading(true);
-    const [rulesRes, lessonsRes, balRes, reqRes] = await Promise.all([
-      supabase.from("availability_rules").select("day_of_week, slot_time").order("slot_time"),
+    const [lessonsRes, balRes, reqRes, busyRes] = await Promise.all([
       supabase
         .from("lessons")
-        .select("scheduled_at, status, lesson_type, student_id")
-        .neq("status", "cancelled"),
+        .select("id, scheduled_at, duration_minutes, status, lesson_type, student_id")
+        .neq("status", "cancelled")
+        .gte("scheduled_at", weekStart.toISOString())
+        .lt("scheduled_at", addDays(weekStart, 14).toISOString()),
       supabase.rpc("credit_balance"),
       supabase
         .from("purchase_requests")
         .select("status, package_id, packages!inner(is_free)")
         .eq("status", "approved"),
+      supabase.functions.invoke("get-busy-times", {
+        body: { from: weekStart.toISOString(), to: weekEnd.toISOString() },
+      }),
     ]);
 
-    if (rulesRes.data) setRules(rulesRes.data as AvailabilityRule[]);
-    if (lessonsRes.data) {
-      const rows = lessonsRes.data as LessonRow[];
-      setBooked(new Set(rows.map((l) => new Date(l.scheduled_at).toISOString())));
-      const used = rows.some((l) => l.student_id === user!.id && l.lesson_type === "trial");
-      setTrialUsed(used);
-    }
+    setLessons((lessonsRes.data ?? []) as LessonRow[]);
+
+    const used = (lessonsRes.data ?? []).some(
+      (l) => (l as LessonRow).student_id === user!.id && (l as LessonRow).lesson_type === "trial",
+    );
+    setTrialUsed(used);
+
     if (typeof balRes.data === "number") setCredits(balRes.data);
+
     const hasTrial = (reqRes.data ?? []).some((r) => {
       const pkg = (r as unknown as { packages: { is_free: boolean } }).packages;
       return pkg?.is_free;
     });
-    setTrialAvailable(hasTrial);
+    setTrialApproved(hasTrial);
 
-    // Default mode: trial if available & not used, else regular
-    if (hasTrial && !lessonsRes.data?.some((l) => (l as LessonRow).student_id === user!.id && (l as LessonRow).lesson_type === "trial")) {
-      setMode("trial");
-    } else {
-      setMode("regular");
-    }
+    const busyData = (busyRes.data as { busy?: BusyRange[] } | null)?.busy ?? [];
+    setBusy(busyData);
+
+    // Default mode: trial if available & unused, else regular
+    if (hasTrial && !used) setMode("trial");
+    else setMode("regular");
+
     setLoading(false);
   }
 
-  const uniqueTimes = useMemo(() => {
-    const set = new Set<string>();
-    rules.forEach((r) => set.add(r.slot_time));
-    return Array.from(set).sort();
-  }, [rules]);
+  // Time labels for the grid: every 30 min from 00:00 PET-anchor — but we render in user's local TZ.
+  // We use 24-hour day in user's local time and color cells based on PET hours.
+  // Cells: every 30 minutes for 24 hours = 48 rows.
+  const halfHourSlots = useMemo(() => {
+    const out: { hour: number; minute: number }[] = [];
+    for (let h = 0; h < 24; h++) {
+      for (const m of [0, 30]) out.push({ hour: h, minute: m });
+    }
+    return out;
+  }, []);
 
-  const ruleSet = useMemo(() => new Set(rules.map((r) => `${r.day_of_week}-${r.slot_time}`)), [rules]);
+  function slotDate(dayIdx: number, hour: number, minute: number) {
+    const d = addDays(weekStart, dayIdx);
+    d.setHours(hour, minute, 0, 0);
+    return d;
+  }
 
-  const canBook = mode === "trial" ? trialAvailable && !trialUsed : credits >= 1;
+  // Pre-compute booked & busy intervals as sorted ranges (ms).
+  // When rescheduling, exclude the lesson being moved.
+  const occupied = useMemo(() => {
+    const ranges: [number, number][] = [];
+    for (const l of lessons) {
+      if (rescheduleId && l.id === rescheduleId) continue;
+      const s = new Date(l.scheduled_at).getTime();
+      ranges.push([s, s + l.duration_minutes * 60_000]);
+    }
+    for (const b of busy) {
+      ranges.push([new Date(b.start).getTime(), new Date(b.end).getTime()]);
+    }
+    return ranges;
+  }, [lessons, busy, rescheduleId]);
+
+  function isBusy(slotStart: Date, durationMin: number): boolean {
+    const s = slotStart.getTime();
+    const e = s + durationMin * 60_000;
+    if (occupied.some(([os, oe]) => os < e && oe > s)) return true;
+    // Also exclude slots overlapping with currently-selected (other) slots
+    const slotKey = slotStart.toISOString();
+    for (const iso of selected) {
+      if (iso === slotKey) continue;
+      const os = new Date(iso).getTime();
+      const oe = os + 60 * 60_000; // selected are always regular (60 min) when multi
+      if (os < e && oe > s) return true;
+    }
+    return false;
+  }
+
+  // Reschedule mode → derive duration from existing lesson; only 1 selection allowed
+  const rescheduleLesson = useMemo(
+    () => (rescheduleId ? lessons.find((l) => l.id === rescheduleId) : null),
+    [rescheduleId, lessons],
+  );
+  const isRescheduling = !!rescheduleLesson;
+  const duration = isRescheduling
+    ? rescheduleLesson!.duration_minutes
+    : mode === "trial"
+      ? 30
+      : 60;
+  const canBook = isRescheduling ? true : mode === "trial" ? trialApproved && !trialUsed : credits >= 1;
+  const maxSlots = isRescheduling ? 1 : mode === "trial" ? 1 : credits;
 
   function toggle(slot: Date) {
     if (!canBook) return;
-    const key = slot.toISOString();
     if (slot.getTime() < Date.now()) return;
-    if (booked.has(key)) return;
-    setSelected((prev) => (prev === key ? null : key));
+    if (!isWithinTeachingHours(slot, duration)) return;
+    if (isBusy(slot, duration)) return;
+    const key = slot.toISOString();
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else {
+        if (next.size >= maxSlots) {
+          if (mode === "trial" || isRescheduling) {
+            next.clear();
+            next.add(key);
+          } else {
+            toast({ title: "Limit reached", description: `You can book up to ${maxSlots} lesson${maxSlots === 1 ? "" : "s"} (1 per credit).` });
+            return prev;
+          }
+        } else next.add(key);
+      }
+      return next;
+    });
   }
 
   async function confirmBooking() {
-    if (!selected) return;
+    if (selected.size === 0) return;
     setSubmitting(true);
-    const { data, error } = await supabase.rpc("book_lesson", {
-      _scheduled_at: selected,
-      _lesson_type: mode,
-    });
+    const slots = Array.from(selected).sort();
 
-    if (error) {
-      const friendly = error.message?.includes("already booked")
-        ? "That slot was just taken — please pick another."
-        : error.message?.includes("No credits")
-          ? "You don't have any credits left."
-          : error.message;
-      toast({ title: "Booking failed", description: friendly, variant: "destructive" });
+    if (isRescheduling && rescheduleLesson) {
+      const { error } = await supabase.rpc("reschedule_lesson", {
+        _lesson_id: rescheduleLesson.id,
+        _new_slot: slots[0],
+      });
+      if (error) {
+        toast({ title: "Reschedule failed", description: error.message, variant: "destructive" });
+        setSubmitting(false);
+        return;
+      }
+      await supabase.functions.invoke("reschedule-lesson-event", { body: { lessonId: rescheduleLesson.id } });
+      toast({ title: "Lesson rescheduled" });
       setSubmitting(false);
+      navigate("/student");
       return;
     }
 
-    // Create the Google Meet event
-    await supabase.functions.invoke("create-lesson-events", {
-      body: { lessonIds: [data as string] },
-    });
+    let lessonIds: string[] = [];
+    if (mode === "trial") {
+      const { data, error } = await supabase.rpc("book_lesson", {
+        _scheduled_at: slots[0],
+        _lesson_type: "trial",
+      });
+      if (error) {
+        toast({ title: "Booking failed", description: error.message, variant: "destructive" });
+        setSubmitting(false);
+        return;
+      }
+      lessonIds = [data as string];
+    } else {
+      const { data, error } = await supabase.rpc("book_lessons", { _slots: slots });
+      if (error) {
+        toast({ title: "Booking failed", description: error.message, variant: "destructive" });
+        setSubmitting(false);
+        return;
+      }
+      lessonIds = (data as string[]) ?? [];
+    }
 
-    toast({ title: "Lesson booked!", description: "A Google Meet invite is on its way." });
+    if (lessonIds.length > 0) {
+      await supabase.functions.invoke("create-lesson-events", { body: { lessonIds } });
+    }
+    toast({
+      title: lessonIds.length > 1 ? `${lessonIds.length} lessons booked!` : "Lesson booked!",
+      description: "A Google Meet invite is on its way.",
+    });
     setSubmitting(false);
     navigate("/student");
   }
@@ -161,68 +285,77 @@ export default function Book() {
           <Link to="/student" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" /> Back to dashboard
           </Link>
-          <Badge variant="secondary">
-            {mode === "trial" ? "Free trial · 30 min" : `${credits} credit${credits === 1 ? "" : "s"} available`}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {isRescheduling ? (
+              <Badge variant="secondary">Rescheduling · {duration} min</Badge>
+            ) : (
+              <>
+                {mode === "regular" && (
+                  <Badge variant="secondary">
+                    {credits} credit{credits === 1 ? "" : "s"} · {credits} lesson{credits === 1 ? "" : "s"} to book
+                  </Badge>
+                )}
+                {mode === "trial" && <Badge variant="secondary"><Sparkles className="h-3 w-3" /> Free trial · 30 min</Badge>}
+              </>
+            )}
+          </div>
         </div>
       </header>
 
-      <main className="container mx-auto max-w-6xl px-4 py-8">
+      <main className="container mx-auto max-w-7xl px-4 py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-semibold tracking-tight">Pick a time</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">
+            {isRescheduling ? "Pick a new time" : `Pick your time${mode === "regular" && credits > 1 ? "s" : ""}`}
+          </h1>
           <p className="mt-1 text-muted-foreground">
-            {mode === "trial"
-              ? "Choose one 30-min slot for your free trial lesson."
-              : `Choose a 60-min slot. Each booking uses 1 credit.`}
+            {isRescheduling
+              ? `Currently ${new Date(rescheduleLesson!.scheduled_at).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}. Pick a new slot below.`
+              : mode === "trial"
+                ? "Choose one 30-min slot for your free trial."
+                : `Yves teaches between 5:30 AM and 7:00 PM Peru time. Pick up to ${credits} slot${credits === 1 ? "" : "s"} — 1 credit = 1 lesson.`}
           </p>
         </div>
 
-        {/* Mode selector */}
-        <Card className="mb-6 p-4">
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={!trialAvailable || trialUsed}
-              onClick={() => {
-                setMode("trial");
-                setSelected(null);
-              }}
-              className={cn(
-                "rounded-lg border px-4 py-2 text-sm font-medium transition-colors",
-                mode === "trial"
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "hover:bg-accent",
-                (!trialAvailable || trialUsed) && "cursor-not-allowed opacity-40",
-              )}
-            >
-              🎁 Free trial {trialUsed ? "(used)" : !trialAvailable ? "(not approved)" : ""}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMode("regular");
-                setSelected(null);
-              }}
-              className={cn(
-                "rounded-lg border px-4 py-2 text-sm font-medium transition-colors",
-                mode === "regular"
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "hover:bg-accent",
-              )}
-            >
-              📚 Regular lesson
-            </button>
-          </div>
-          {!canBook && (
-            <p className="mt-3 text-sm text-destructive">
+        {/* Mode selector — only show toggle when both options exist */}
+        {!isRescheduling && trialApproved && !trialUsed && credits >= 1 && (
+          <Card className="mb-6 p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm text-muted-foreground mr-2">Booking:</span>
+              <button
+                type="button"
+                onClick={() => { setMode("trial"); setSelected(new Set()); }}
+                className={cn(
+                  "rounded-lg border px-4 py-2 text-sm font-medium transition-colors",
+                  mode === "trial" ? "border-primary bg-primary text-primary-foreground" : "hover:bg-accent",
+                )}
+              >
+                🎁 Free trial (30 min)
+              </button>
+              <button
+                type="button"
+                onClick={() => { setMode("regular"); setSelected(new Set()); }}
+                className={cn(
+                  "rounded-lg border px-4 py-2 text-sm font-medium transition-colors",
+                  mode === "regular" ? "border-primary bg-primary text-primary-foreground" : "hover:bg-accent",
+                )}
+              >
+                📚 Regular lesson (60 min · 1 credit)
+              </button>
+            </div>
+          </Card>
+        )}
+
+        {!canBook && (
+          <Card className="mb-6 border-destructive/50 p-4">
+            <p className="text-sm text-destructive">
               {mode === "trial"
                 ? trialUsed
                   ? "You've already used your trial."
                   : "Request a trial from your dashboard first."
                 : "You don't have any credits. Request a package from your dashboard."}
             </p>
-          )}
-        </Card>
+          </Card>
+        )}
 
         {/* Week navigator */}
         <div className="mb-4 flex items-center justify-between">
@@ -250,15 +383,15 @@ export default function Book() {
 
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
-            <div className="grid min-w-[700px] grid-cols-[80px_repeat(7,1fr)] border-b bg-muted/30">
-              <div className="p-3 text-xs font-medium text-muted-foreground">Time</div>
+            <div className="grid min-w-[800px] grid-cols-[80px_repeat(7,1fr)] sticky top-0 z-10 border-b bg-card">
+              <div className="p-2 text-xs font-medium text-muted-foreground">Local time</div>
               {Array.from({ length: 7 }).map((_, i) => {
                 const d = addDays(weekStart, i);
                 const isToday = d.toDateString() === new Date().toDateString();
                 return (
                   <div
                     key={i}
-                    className={cn("p-3 text-center text-xs font-medium", isToday && "text-primary font-semibold")}
+                    className={cn("p-2 text-center text-xs font-medium", isToday && "text-primary font-semibold")}
                   >
                     <div>{DAYS[d.getDay()]}</div>
                     <div className="text-base font-semibold text-foreground">{d.getDate()}</div>
@@ -267,44 +400,65 @@ export default function Book() {
               })}
             </div>
 
-            {uniqueTimes.map((time) => (
-              <div key={time} className="grid min-w-[700px] grid-cols-[80px_repeat(7,1fr)] border-b last:border-b-0">
-                <div className="border-r p-3 text-xs font-medium text-muted-foreground">{fmtTime(time)}</div>
-                {Array.from({ length: 7 }).map((_, i) => {
-                  const d = addDays(weekStart, i);
-                  const dow = d.getDay();
-                  const exists = ruleSet.has(`${dow}-${time}`);
-                  if (!exists) return <div key={i} className="border-r last:border-r-0 bg-muted/10" />;
+            <div className="max-h-[70vh] overflow-y-auto">
+              {halfHourSlots.map(({ hour, minute }) => {
+                // Use the first day of the week to format an example label
+                const sample = slotDate(0, hour, minute);
+                const isHourMark = minute === 0;
+                return (
+                  <div
+                    key={`${hour}-${minute}`}
+                    className={cn(
+                      "grid min-w-[800px] grid-cols-[80px_repeat(7,1fr)] border-b last:border-b-0",
+                      isHourMark ? "border-border" : "border-border/40",
+                    )}
+                  >
+                    <div className={cn(
+                      "border-r p-2 text-xs",
+                      isHourMark ? "font-medium text-muted-foreground" : "text-muted-foreground/40",
+                    )}>
+                      {isHourMark ? fmtHourLabel(sample) : ""}
+                    </div>
+                    {Array.from({ length: 7 }).map((_, day) => {
+                      const slot = slotDate(day, hour, minute);
+                      const inHours = isWithinTeachingHours(slot, duration);
+                      const isPast = slot.getTime() < Date.now();
+                      const slotKey = slot.toISOString();
+                      const isSelected = selected.has(slotKey);
+                      const occupiedNow = isBusy(slot, duration) && !isSelected;
 
-                  const slot = isoSlot(d, time);
-                  const key = slot.toISOString();
-                  const isPast = slot.getTime() < Date.now();
-                  const isBooked = booked.has(key);
-                  const isSelected = selected === key;
-                  const disabled = isPast || isBooked || !canBook;
+                      const cellDisabled = !inHours || isPast || occupiedNow || (!canBook && !isSelected);
 
-                  return (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => toggle(slot)}
-                      disabled={disabled}
-                      className={cn(
-                        "border-r last:border-r-0 p-2 text-xs transition-colors",
-                        !disabled && "hover:bg-primary/10",
-                        isPast && "cursor-not-allowed bg-muted/30 text-muted-foreground",
-                        isBooked && "cursor-not-allowed bg-destructive/10 text-destructive",
-                        !canBook && !isPast && !isBooked && "cursor-not-allowed bg-muted/20 text-muted-foreground",
-                        isSelected && "bg-primary text-primary-foreground hover:bg-primary",
-                        canBook && !isPast && !isBooked && !isSelected && "bg-background",
-                      )}
-                    >
-                      {isBooked ? "Booked" : isSelected ? "Selected" : isPast ? "—" : "Open"}
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
+                      return (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => toggle(slot)}
+                          disabled={cellDisabled}
+                          aria-label={`${slot.toLocaleString()}`}
+                          className={cn(
+                            "border-r last:border-r-0 h-7 text-[10px] transition-colors",
+                            !inHours && "bg-muted/40",
+                            inHours && !cellDisabled && "hover:bg-primary/10",
+                            inHours && occupiedNow && "bg-destructive/10",
+                            inHours && isPast && "bg-muted/30",
+                            isSelected && "bg-primary text-primary-foreground hover:bg-primary",
+                          )}
+                        />
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Legend */}
+          <div className="flex flex-wrap items-center gap-4 border-t p-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm border bg-background" /> Available</span>
+            <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-primary" /> Selected</span>
+            <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-destructive/20" /> Booked / busy</span>
+            <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-muted" /> Outside hours</span>
           </div>
         </Card>
 
@@ -312,28 +466,30 @@ export default function Book() {
           <div className="flex items-center gap-3">
             <CalendarCheck className="h-5 w-5 text-primary" />
             <div className="text-sm">
-              {selected ? (
+              {selected.size === 0 ? (
+                <span className="text-muted-foreground">
+                  {mode === "trial" ? "Pick one 30-min slot" : `Pick up to ${maxSlots} slot${maxSlots === 1 ? "" : "s"}`}
+                </span>
+              ) : (
                 <>
                   <div className="font-medium">
-                    {new Date(selected).toLocaleString(undefined, {
-                      weekday: "short",
-                      month: "short",
-                      day: "numeric",
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })}
+                    {selected.size === 1
+                      ? new Date(Array.from(selected)[0]).toLocaleString(undefined, {
+                          weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+                        })
+                      : `${selected.size} lesson${selected.size === 1 ? "" : "s"} selected`}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {mode === "trial" ? "Free trial · 30 min" : "Regular · 60 min · 1 credit"}
+                    {mode === "trial"
+                      ? "Free trial · 30 min"
+                      : `${selected.size} × 60 min · ${selected.size} credit${selected.size === 1 ? "" : "s"}`}
                   </div>
                 </>
-              ) : (
-                <span className="text-muted-foreground">Pick a time slot above</span>
               )}
             </div>
           </div>
-          <Button onClick={confirmBooking} disabled={!selected || submitting} size="lg">
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm booking"}
+          <Button onClick={confirmBooking} disabled={selected.size === 0 || submitting} size="lg">
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : `Confirm${selected.size > 1 ? ` (${selected.size})` : ""}`}
           </Button>
         </div>
       </main>

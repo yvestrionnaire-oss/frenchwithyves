@@ -43,6 +43,7 @@ export type Database = {
           id: string
           lesson_type: string
           meet_link: string | null
+          rescheduled_from: string | null
           scheduled_at: string
           status: Database["public"]["Enums"]["lesson_status"]
           student_id: string
@@ -54,6 +55,7 @@ export type Database = {
           id?: string
           lesson_type?: string
           meet_link?: string | null
+          rescheduled_from?: string | null
           scheduled_at: string
           status?: Database["public"]["Enums"]["lesson_status"]
           student_id: string
@@ -65,6 +67,7 @@ export type Database = {
           id?: string
           lesson_type?: string
           meet_link?: string | null
+          rescheduled_from?: string | null
           scheduled_at?: string
           status?: Database["public"]["Enums"]["lesson_status"]
           student_id?: string
@@ -178,6 +181,39 @@ export type Database = {
           },
         ]
       }
+      teacher_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          lesson_id: string | null
+          payload: Json
+          read_at: string | null
+          request_id: string | null
+          student_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          lesson_id?: string | null
+          payload?: Json
+          read_at?: string | null
+          request_id?: string | null
+          student_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          lesson_id?: string | null
+          payload?: Json
+          read_at?: string | null
+          request_id?: string | null
+          student_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -216,10 +252,9 @@ export type Database = {
         Args: { _lesson_type?: string; _scheduled_at: string }
         Returns: string
       }
-      book_lessons: {
-        Args: { _slots: string[]; _student_id: string }
-        Returns: string[]
-      }
+      book_lessons:
+        | { Args: { _slots: string[] }; Returns: string[] }
+        | { Args: { _slots: string[]; _student_id: string }; Returns: string[] }
       bootstrap_admin: { Args: { _admin_email: string }; Returns: undefined }
       cancel_lesson: { Args: { _lesson_id: string }; Returns: undefined }
       cancel_request: { Args: { _request_id: string }; Returns: undefined }
@@ -231,6 +266,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_valid_slot: {
+        Args: { _at: string; _duration_minutes?: number }
         Returns: boolean
       }
       mark_payment_link_sent: {
@@ -251,6 +290,14 @@ export type Database = {
           _user_id: string
         }
         Returns: undefined
+      }
+      slot_conflicts: {
+        Args: {
+          _at: string
+          _duration_minutes: number
+          _exclude_lesson?: string
+        }
+        Returns: boolean
       }
     }
     Enums: {

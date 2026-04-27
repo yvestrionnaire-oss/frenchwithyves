@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
+  Bell,
   CalendarDays,
   CheckCircle2,
   Copy,
@@ -18,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { TeacherCalendar } from "@/components/TeacherCalendar";
 
 type Pkg = { id: string; name: string; price_cents: number; is_free: boolean; credits: number };
 type Profile = { id: string; full_name: string | null; email: string | null };
@@ -40,6 +42,16 @@ type Lesson = {
   meet_link: string | null;
 };
 type StudentRow = { id: string; full_name: string | null; email: string | null; credits: number; lessonsCount: number };
+type Notification = {
+  id: string;
+  kind: "request_created" | "lesson_cancelled" | "lesson_rescheduled";
+  student_id: string;
+  lesson_id: string | null;
+  request_id: string | null;
+  payload: Record<string, unknown>;
+  read_at: string | null;
+  created_at: string;
+};
 
 const fmtDateTime = (iso: string) =>
   new Date(iso).toLocaleString(undefined, {
@@ -58,6 +70,7 @@ export default function TeacherDashboard() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -75,6 +88,11 @@ export default function TeacherDashboard() {
         { event: "*", schema: "public", table: "lessons" },
         () => void loadAll(),
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "teacher_notifications" },
+        () => void loadAll(),
+      )
       .subscribe();
 
     return () => {
@@ -84,7 +102,7 @@ export default function TeacherDashboard() {
 
   async function loadAll() {
     setLoading(true);
-    const [p, pr, l, prof] = await Promise.all([
+    const [p, pr, l, prof, n] = await Promise.all([
       supabase.from("packages").select("id, name, price_cents, is_free, credits").order("sort_order"),
       supabase
         .from("purchase_requests")
@@ -95,12 +113,28 @@ export default function TeacherDashboard() {
         .select("id, student_id, scheduled_at, duration_minutes, lesson_type, status, meet_link")
         .order("scheduled_at"),
       supabase.from("profiles").select("id, full_name, email"),
+      supabase
+        .from("teacher_notifications")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50),
     ]);
     setPackages((p.data ?? []) as Pkg[]);
     setRequests((pr.data ?? []) as Request[]);
     setLessons((l.data ?? []) as Lesson[]);
     setProfiles((prof.data ?? []) as Profile[]);
+    setNotifications((n.data ?? []) as Notification[]);
     setLoading(false);
+  }
+
+  async function markAllRead() {
+    const unread = notifications.filter((x) => !x.read_at).map((x) => x.id);
+    if (unread.length === 0) return;
+    await supabase
+      .from("teacher_notifications")
+      .update({ read_at: new Date().toISOString() })
+      .in("id", unread);
+    await loadAll();
   }
 
   const profileMap = useMemo(() => new Map(profiles.map((p) => [p.id, p])), [profiles]);
@@ -178,16 +212,59 @@ export default function TeacherDashboard() {
         </div>
 
         {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-4">
           <Stat icon={<Users />} value={students.length} label="Students" />
-          <Stat
-            icon={<Mail />}
-            value={pendingRequests.length}
-            label="Pending requests"
-            highlight={pendingRequests.length > 0}
-          />
+          <Stat icon={<Mail />} value={pendingRequests.length} label="Pending requests" highlight={pendingRequests.length > 0} />
           <Stat icon={<CalendarDays />} value={upcoming.length} label="Upcoming lessons" />
+          <Stat icon={<Bell />} value={notifications.filter((n) => !n.read_at).length} label="New notifications" highlight={notifications.some((n) => !n.read_at)} />
         </div>
+
+        {/* Notifications feed */}
+        {notifications.length > 0 && (
+          <section>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Recent activity</h2>
+              {notifications.some((n) => !n.read_at) && (
+                <Button variant="ghost" size="sm" onClick={markAllRead}>Mark all read</Button>
+              )}
+            </div>
+            <Card>
+              <CardContent className="divide-y p-0">
+                {notifications.slice(0, 10).map((n) => {
+                  const profile = profileMap.get(n.student_id);
+                  const isUnread = !n.read_at;
+                  let label = "";
+                  if (n.kind === "request_created") label = `${profile?.full_name ?? "Student"} requested a package`;
+                  else if (n.kind === "lesson_cancelled") label = `${profile?.full_name ?? "Student"} cancelled a lesson`;
+                  else if (n.kind === "lesson_rescheduled") label = `${profile?.full_name ?? "Student"} rescheduled a lesson`;
+                  return (
+                    <div key={n.id} className={`flex items-center gap-3 p-3 text-sm ${isUnread ? "bg-primary/5" : ""}`}>
+                      {isUnread && <span className="h-2 w-2 rounded-full bg-primary" />}
+                      <div className="flex-1">
+                        <div className={isUnread ? "font-medium" : ""}>{label}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(n.created_at).toLocaleString()} · {profile?.email}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+            <p className="mt-2 text-xs text-muted-foreground">
+              💡 Want these as emails to yvestrionnaire@gmail.com? You'll need to set up an email domain (paid).
+            </p>
+          </section>
+        )}
+
+        {/* Calendar */}
+        <section>
+          <h2 className="mb-3 text-xl font-semibold">Your calendar</h2>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Live view of all booked lessons and your Google Calendar. Updates automatically.
+          </p>
+          <TeacherCalendar profiles={profiles} />
+        </section>
 
         {/* Pending requests — center of attention */}
         <section>

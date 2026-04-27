@@ -188,24 +188,27 @@ export default function StudentDashboard() {
 
         {/* Credits + Book CTA */}
         <div className="grid gap-4 md:grid-cols-3">
-          <Card className="md:col-span-2">
+          <Card className="md:col-span-2 border-primary/30">
             <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="text-sm text-muted-foreground">Available credits</div>
                 <div className="mt-1 flex items-baseline gap-2">
-                  <span className="text-4xl font-semibold">{credits}</span>
-                  <span className="text-sm text-muted-foreground">
-                    {credits === 1 ? "lesson" : "lessons"}
+                  <span className="text-5xl font-semibold text-primary">{credits}</span>
+                  <span className="text-sm font-medium text-muted-foreground">
+                    = {credits} lesson{credits === 1 ? "" : "s"} you can book
                   </span>
                 </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  💡 Each credit = one 60-minute lesson. Book them all at once, or one at a time.
+                </p>
                 {trialApproved && canBookTrial && (
-                  <p className="mt-2 text-xs text-primary">🎁 Your free trial is approved — go book it!</p>
+                  <p className="mt-2 text-xs font-medium text-primary">🎁 Your free trial is approved — go book it!</p>
                 )}
               </div>
-              <Button asChild size="lg" disabled={credits < 1}>
+              <Button asChild size="lg" disabled={credits < 1 && !canBookTrial}>
                 <Link to="/book">
                   <CalendarDays className="h-4 w-4" />
-                  {credits > 0 ? "Book a lesson" : "No credits — request a package"}
+                  {credits > 0 || canBookTrial ? `Book ${credits > 0 ? `${credits} lesson${credits === 1 ? "" : "s"}` : "trial"}` : "No credits"}
                 </Link>
               </Button>
             </CardContent>
@@ -287,6 +290,9 @@ export default function StudentDashboard() {
                           </a>
                         </Button>
                       )}
+                      <Button asChild variant="outline" size="sm">
+                        <Link to={`/book?reschedule=${l.id}`}>Reschedule</Link>
+                      </Button>
                       <Button variant="ghost" size="sm" onClick={() => cancelLesson(l.id)}>
                         Cancel
                       </Button>

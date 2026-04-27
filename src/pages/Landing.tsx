@@ -1,11 +1,15 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { BookOpen, CalendarDays, CheckCircle, CreditCard, Mail, Send, Sparkles, Star, Target, Users, Wallet } from "lucide-react";
 import portrait from "@/assets/yves-trionnaire-real.jpg";
 import introVideo from "@/assets/yves-introduction.mp4";
 import { useAuth } from "@/lib/auth";
 
 export default function Landing() {
+  const { user, role, loading } = useAuth();
+  if (!loading && user && role) {
+    return <Navigate to={role === "teacher" ? "/teacher" : "/student"} replace />;
+  }
   return (
     <main>
       <Header />
