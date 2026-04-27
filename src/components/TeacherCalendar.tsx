@@ -158,6 +158,7 @@ export function TeacherCalendar({ profiles }: { profiles: Profile[] }) {
           {halfHourSlots.map(({ hour, minute }) => {
             const sample = slotDate(0, hour, minute);
             const isHourMark = minute === 0;
+            const labelText = sample.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
             return (
               <div
                 key={`${hour}-${minute}`}
@@ -167,10 +168,10 @@ export function TeacherCalendar({ profiles }: { profiles: Profile[] }) {
                 )}
               >
                 <div className={cn(
-                  "border-r p-2 text-xs",
-                  isHourMark ? "font-medium text-muted-foreground" : "text-muted-foreground/40",
+                  "border-r px-2 py-1 text-[11px]",
+                  isHourMark ? "font-semibold text-foreground" : "text-muted-foreground/70",
                 )}>
-                  {isHourMark ? sample.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : ""}
+                  {labelText}
                 </div>
                 {Array.from({ length: 7 }).map((_, day) => {
                   const slot = slotDate(day, hour, minute);
@@ -208,7 +209,7 @@ export function TeacherCalendar({ profiles }: { profiles: Profile[] }) {
                       key={day}
                       className={cn(
                         "border-r last:border-r-0 h-7",
-                        !inHours && "bg-muted/40",
+                        !inHours && "bg-amber-100/60 dark:bg-amber-950/30",
                         covers && "bg-primary/15",
                         hasBusy && "bg-destructive/10",
                       )}
@@ -225,7 +226,7 @@ export function TeacherCalendar({ profiles }: { profiles: Profile[] }) {
       <div className="flex flex-wrap items-center gap-4 border-t p-3 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-primary/20" /> Lesson booked</span>
         <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-destructive/20" /> Google Calendar busy</span>
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-muted" /> Outside teaching hours</span>
+        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-amber-100 dark:bg-amber-950/30" /> Outside teaching hours</span>
       </div>
     </Card>
   );
