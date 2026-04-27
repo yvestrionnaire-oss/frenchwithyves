@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, CalendarCheck, ChevronLeft, ChevronRight, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -65,6 +65,8 @@ function fmtHourLabel(d: Date): string {
 export default function Book() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const rescheduleId = params.get("reschedule");
   const [lessons, setLessons] = useState<LessonRow[]>([]);
   const [busy, setBusy] = useState<BusyRange[]>([]);
   const [credits, setCredits] = useState(0);
