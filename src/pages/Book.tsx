@@ -405,6 +405,7 @@ export default function Book() {
                 // Use the first day of the week to format an example label
                 const sample = slotDate(0, hour, minute);
                 const isHourMark = minute === 0;
+                const labelText = sample.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
                 return (
                   <div
                     key={`${hour}-${minute}`}
@@ -414,35 +415,50 @@ export default function Book() {
                     )}
                   >
                     <div className={cn(
-                      "border-r p-2 text-xs",
-                      isHourMark ? "font-medium text-muted-foreground" : "text-muted-foreground/40",
+                      "border-r px-2 py-1 text-[11px]",
+                      isHourMark ? "font-semibold text-foreground" : "text-muted-foreground/70",
                     )}>
-                      {isHourMark ? fmtHourLabel(sample) : ""}
+                      {labelText}
                     </div>
                     {Array.from({ length: 7 }).map((_, day) => {
                       const slot = slotDate(day, hour, minute);
-                      const inHours = isWithinTeachingHours(slot, duration);
                       const isPast = slot.getTime() < Date.now();
                       const slotKey = slot.toISOString();
-                      const isSelected = selected.has(slotKey);
-                      const occupiedNow = isBusy(slot, duration) && !isSelected;
 
-                      const cellDisabled = !inHours || isPast || occupiedNow || (!canBook && !isSelected);
+                      // For 60-min bookings, the lesson covers TWO 30-min cells.
+                      // We anchor each lesson to its starting 30-min slot — that's the actual button.
+                      // The second half is rendered as a non-clickable continuation cell.
+                      const blockStart = duration === 60 && minute === 30
+                        ? new Date(slot.getTime() - 30 * 60_000)
+                        : slot;
+                      const isContinuation = duration === 60 && minute === 30
+                        ? selected.has(blockStart.toISOString())
+                        : false;
+                      const inHours = isWithinTeachingHours(blockStart, duration);
+                      const isSelected = selected.has(blockStart.toISOString());
+                      const occupiedNow =
+                        (duration === 60 && minute === 30
+                          ? false // continuation: parent slot already handled
+                          : isBusy(slot, duration)) && !isSelected;
+
+                      const cellDisabled =
+                        isContinuation /* second half is non-clickable */ ||
+                        !inHours || isPast || occupiedNow || (!canBook && !isSelected);
 
                       return (
                         <button
                           key={day}
                           type="button"
-                          onClick={() => toggle(slot)}
+                          onClick={() => !isContinuation && toggle(slot)}
                           disabled={cellDisabled}
                           aria-label={`${slot.toLocaleString()}`}
                           className={cn(
                             "border-r last:border-r-0 h-7 text-[10px] transition-colors",
-                            !inHours && "bg-muted/40",
+                            !inHours && "bg-amber-100/60 dark:bg-amber-950/30",
                             inHours && !cellDisabled && "hover:bg-primary/10",
                             inHours && occupiedNow && "bg-destructive/10",
-                            inHours && isPast && "bg-muted/30",
-                            isSelected && "bg-primary text-primary-foreground hover:bg-primary",
+                            inHours && isPast && !isSelected && !isContinuation && "bg-muted/40",
+                            (isSelected || isContinuation) && "bg-primary text-primary-foreground hover:bg-primary",
                           )}
                         />
                       );
