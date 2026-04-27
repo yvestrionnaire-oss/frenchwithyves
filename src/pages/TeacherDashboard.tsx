@@ -435,6 +435,9 @@ export default function TeacherDashboard() {
             </Card>
           )}
         </section>
+
+        {/* Earnings (bottom) */}
+        <EarningsSection lessons={lessons} requests={requests} packages={packages} />
       </main>
     </div>
   );
