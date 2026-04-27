@@ -123,7 +123,7 @@ export default function Landing() {
         <p className="mx-auto mt-4 max-w-2xl text-center text-sm text-secondaryText">
           <strong>Need to reschedule?</strong> Cancel from your dashboard up to 5 minutes before your lesson and book a new slot any time.
         </p>
-      </Section>
+      </section>
 
       {/* Booking CTA */}
       <section id="book" className="app-container py-10">
