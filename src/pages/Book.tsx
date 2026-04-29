@@ -267,27 +267,20 @@ export default function Book() {
       return;
     }
 
-    let lessonIds: string[] = [];
-    if (mode === "trial") {
-      const { data, error } = await supabase.rpc("book_lesson", {
-        _scheduled_at: slots[0],
-        _lesson_type: "trial",
+    const { data: booked, error } = await supabase.functions.invoke("book-with-availability", {
+      body: { slots, lessonType: mode },
+    });
+    if (error || booked?.error) {
+      toast({
+        title: booked?.error ?? "Booking failed",
+        description: booked?.description ?? error?.message ?? "Please pick another slot.",
+        variant: "destructive",
       });
-      if (error) {
-        toast({ title: "Booking failed", description: error.message, variant: "destructive" });
-        setSubmitting(false);
-        return;
-      }
-      lessonIds = [data as string];
-    } else {
-      const { data, error } = await supabase.rpc("book_lessons", { _slots: slots });
-      if (error) {
-        toast({ title: "Booking failed", description: error.message, variant: "destructive" });
-        setSubmitting(false);
-        return;
-      }
-      lessonIds = (data as string[]) ?? [];
+      setSubmitting(false);
+      await load();
+      return;
     }
+    const lessonIds = (booked?.lessonIds as string[] | undefined) ?? [];
 
     if (lessonIds.length > 0) {
       await supabase.functions.invoke("create-lesson-events", { body: { lessonIds } });
