@@ -43,7 +43,7 @@ async function getCalendarBusy(from: string, to: string): Promise<BusyRange[]> {
   const data = await resp.json();
   if (!resp.ok) {
     console.error("freeBusy failed before booking:", data);
-    return [];
+    throw new Error("Unable to verify calendar availability");
   }
   return data?.calendars?.primary?.busy ?? [];
 }
