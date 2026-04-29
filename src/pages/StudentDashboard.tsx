@@ -401,8 +401,16 @@ export default function StudentDashboard() {
             Pick a package — Yves will email you a payment link, and once payment is confirmed,
             credits appear here so you can book your slots.
           </p>
+          {trialBooked && (
+            <div className="mb-4 rounded-lg border border-primary/40 bg-primary/5 p-4 text-sm">
+              <strong className="text-primary">🎉 Your free trial is booked!</strong>
+              <p className="mt-1 text-muted-foreground">
+                You've already used your one-time free trial lesson. Pick a package below to keep learning.
+              </p>
+            </div>
+          )}
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {packages.map((pkg) => (
+            {visiblePackages.map((pkg) => (
               <Card key={pkg.id} className={pkg.is_recommended ? "border-primary" : ""}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
