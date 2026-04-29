@@ -98,7 +98,7 @@ export default function Book() {
         .select("status, package_id, packages!inner(is_free)")
         .eq("status", "approved"),
       supabase.functions.invoke("get-busy-times", {
-        body: { from: weekStart.toISOString(), to: weekEnd.toISOString() },
+        body: { from: weekStart.toISOString(), to: addDays(weekStart, 14).toISOString() },
       }),
     ]);
 
@@ -221,8 +221,28 @@ export default function Book() {
 
   async function confirmBooking() {
     if (selected.size === 0) return;
-    setSubmitting(true);
     const slots = Array.from(selected).sort();
+
+    // Final guard: re-check each selected slot against busy/booked ranges
+    // (covers Google Calendar busy times that the server-side RPC doesn't see).
+    for (const iso of slots) {
+      const slot = new Date(iso);
+      if (isBusy(slot, duration)) {
+        toast({
+          title: "Slot no longer available",
+          description: "Yves is busy at that time. Please pick another slot.",
+          variant: "destructive",
+        });
+        setSelected((prev) => {
+          const n = new Set(prev);
+          n.delete(iso);
+          return n;
+        });
+        return;
+      }
+    }
+
+    setSubmitting(true);
 
     if (isRescheduling && rescheduleLesson) {
       const { error } = await supabase.rpc("reschedule_lesson", {

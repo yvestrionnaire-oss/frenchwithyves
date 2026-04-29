@@ -188,7 +188,14 @@ export default function StudentDashboard() {
   );
   const activeRequests = requests.filter((r) => r.status !== "cancelled");
   const trialApproved = requests.some((r) => r.status === "approved");
-  const canBookTrial = trialApproved && !lessons.some((l) => l.lesson_type === "trial" && l.status !== "cancelled");
+  const trialBooked = lessons.some((l) => l.lesson_type === "trial" && l.status !== "cancelled");
+  const canBookTrial = trialApproved && !trialBooked;
+  const trialEverRequested = requests.some((r) => {
+    const pkg = packages.find((p) => p.id === r.package_id);
+    return pkg?.is_free;
+  });
+  // Hide the free trial package once it's been requested/booked — it can only be taken once.
+  const visiblePackages = packages.filter((p) => !p.is_free || !(trialEverRequested || trialBooked));
 
   // Build LessonItem[] for the unified view
   const lessonItems: LessonItem[] = useMemo(() => {
@@ -394,8 +401,16 @@ export default function StudentDashboard() {
             Pick a package — Yves will email you a payment link, and once payment is confirmed,
             credits appear here so you can book your slots.
           </p>
+          {trialBooked && (
+            <div className="mb-4 rounded-lg border border-primary/40 bg-primary/5 p-4 text-sm">
+              <strong className="text-primary">🎉 Your free trial is booked!</strong>
+              <p className="mt-1 text-muted-foreground">
+                You've already used your one-time free trial lesson. Pick a package below to keep learning.
+              </p>
+            </div>
+          )}
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {packages.map((pkg) => (
+            {visiblePackages.map((pkg) => (
               <Card key={pkg.id} className={pkg.is_recommended ? "border-primary" : ""}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
