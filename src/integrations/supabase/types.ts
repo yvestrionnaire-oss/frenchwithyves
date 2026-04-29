@@ -296,6 +296,13 @@ export type Database = {
       book_lessons:
         | { Args: { _slots: string[] }; Returns: string[] }
         | { Args: { _slots: string[]; _student_id: string }; Returns: string[] }
+      booked_ranges: {
+        Args: { _from: string; _to: string }
+        Returns: {
+          end_at: string
+          start_at: string
+        }[]
+      }
       bootstrap_admin: { Args: { _admin_email: string }; Returns: undefined }
       cancel_lesson: { Args: { _lesson_id: string }; Returns: undefined }
       cancel_request: { Args: { _request_id: string }; Returns: undefined }

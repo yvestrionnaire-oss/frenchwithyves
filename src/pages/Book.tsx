@@ -85,7 +85,7 @@ export default function Book() {
 
   async function load() {
     setLoading(true);
-    const [lessonsRes, balRes, reqRes, busyRes] = await Promise.all([
+    const [lessonsRes, balRes, reqRes, busyRes, bookedRes] = await Promise.all([
       supabase
         .from("lessons")
         .select("id, scheduled_at, duration_minutes, status, lesson_type, student_id")
@@ -99,6 +99,10 @@ export default function Book() {
         .eq("status", "approved"),
       supabase.functions.invoke("get-busy-times", {
         body: { from: weekStart.toISOString(), to: addDays(weekStart, 14).toISOString() },
+      }),
+      supabase.rpc("booked_ranges", {
+        _from: weekStart.toISOString(),
+        _to: addDays(weekStart, 14).toISOString(),
       }),
     ]);
 
@@ -117,8 +121,10 @@ export default function Book() {
     });
     setTrialApproved(hasTrial);
 
-    const busyData = (busyRes.data as { busy?: BusyRange[] } | null)?.busy ?? [];
-    setBusy(busyData);
+    const calendarBusy = (busyRes.data as { busy?: BusyRange[] } | null)?.busy ?? [];
+    const otherBooked: BusyRange[] = ((bookedRes.data as Array<{ start_at: string; end_at: string }> | null) ?? [])
+      .map((r) => ({ start: r.start_at, end: r.end_at }));
+    setBusy([...calendarBusy, ...otherBooked]);
 
     // Default mode: trial if available & unused, else regular
     if (hasTrial && !used) setMode("trial");
