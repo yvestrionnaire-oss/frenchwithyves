@@ -176,10 +176,16 @@ export default function Book() {
     return ranges;
   }, [lessons, busy, rescheduleId]);
 
-  function isBusy(slotStart: Date, durationMin: number): boolean {
+  function rangeOverlapsOccupied(slotStart: Date, durationMin: number): boolean {
     const s = slotStart.getTime();
     const e = s + durationMin * 60_000;
     if (occupied.some(([os, oe]) => os < e && oe > s)) return true;
+    return false;
+  }
+
+  function selectedOverlapsRange(slotStart: Date, durationMin: number): boolean {
+    const s = slotStart.getTime();
+    const e = s + durationMin * 60_000;
     // Also exclude slots overlapping with currently-selected (other) slots
     const slotKey = slotStart.toISOString();
     for (const iso of selected) {
@@ -189,6 +195,28 @@ export default function Book() {
       if (os < e && oe > s) return true;
     }
     return false;
+  }
+
+  function isBusy(slotStart: Date, durationMin: number): boolean {
+    return rangeOverlapsOccupied(slotStart, durationMin) || selectedOverlapsRange(slotStart, durationMin);
+  }
+
+  function isThirtyMinuteCellOccupied(slotStart: Date): boolean {
+    return rangeOverlapsOccupied(slotStart, 30);
+  }
+
+  function canStartLessonAt(slotStart: Date): boolean {
+    if (slotStart.getTime() < Date.now()) return false;
+    if (!isWithinTeachingHours(slotStart, duration)) return false;
+
+    // A 60-minute lesson must have BOTH 30-minute cells free: the clicked cell
+    // and the next cell. This prevents taking a half-free / half-busy hour.
+    if (duration === 60) {
+      const secondHalf = new Date(slotStart.getTime() + 30 * 60_000);
+      return !isThirtyMinuteCellOccupied(slotStart) && !isThirtyMinuteCellOccupied(secondHalf) && !selectedOverlapsRange(slotStart, 60);
+    }
+
+    return !isBusy(slotStart, duration);
   }
 
   // Reschedule mode → derive duration from existing lesson; only 1 selection allowed
@@ -214,9 +242,7 @@ export default function Book() {
 
   function toggle(slot: Date) {
     if (!canBook) return;
-    if (slot.getTime() < Date.now()) return;
-    if (!isWithinTeachingHours(slot, duration)) return;
-    if (isBusy(slot, duration)) return;
+    if (!canStartLessonAt(slot)) return;
     const key = slot.toISOString();
     setSelected((prev) => {
       const next = new Set(prev);
@@ -240,14 +266,15 @@ export default function Book() {
     if (selected.size === 0) return;
     const slots = Array.from(selected).sort();
 
-    // Final guard: re-check each selected slot against busy/booked ranges
-    // (covers Google Calendar busy times that the server-side RPC doesn't see).
+    // Final guard: a lesson can only be confirmed if its full duration is free.
     for (const iso of slots) {
       const slot = new Date(iso);
-      if (isBusy(slot, duration)) {
+      if (!canStartLessonAt(slot)) {
         toast({
           title: "Slot no longer available",
-          description: "Yves is busy at that time. Please pick another slot.",
+          description: duration === 60
+            ? "A 60-minute lesson needs two available 30-minute cells. Please pick a full hour."
+            : "Yves is busy at that time. Please pick another slot.",
           variant: "destructive",
         });
         setSelected((prev) => {
@@ -473,11 +500,12 @@ export default function Book() {
                       const isContinuation = isContinuationOf(slot);
                       const inHours = isWithinTeachingHours(slot, duration);
                       const isSelected = selected.has(slot.toISOString());
-                      const occupiedNow = !isSelected && !isContinuation && isBusy(slot, duration);
+                      const fullLessonBlocked = !isSelected && !isContinuation && !canStartLessonAt(slot);
+                      const cellOccupied = isThirtyMinuteCellOccupied(slot);
 
                       const cellDisabled =
                         isContinuation /* second half of a selection is non-clickable */ ||
-                        !inHours || isPast || occupiedNow || (!canBook && !isSelected);
+                        !inHours || isPast || fullLessonBlocked || (!canBook && !isSelected);
 
                       return (
                         <button
@@ -490,7 +518,7 @@ export default function Book() {
                             "border-r last:border-r-0 h-7 text-[10px] transition-colors",
                             !inHours && "bg-amber-100/60 dark:bg-amber-950/30",
                             inHours && !cellDisabled && "hover:bg-primary/10",
-                            inHours && occupiedNow && "bg-destructive/10",
+                            inHours && (cellOccupied || fullLessonBlocked) && "bg-destructive/10",
                             inHours && isPast && !isSelected && !isContinuation && "bg-muted/40",
                             (isSelected || isContinuation) && "bg-primary text-primary-foreground hover:bg-primary",
                           )}
