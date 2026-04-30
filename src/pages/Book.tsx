@@ -499,11 +499,12 @@ export default function Book() {
                       const isContinuation = isContinuationOf(slot);
                       const inHours = isWithinTeachingHours(slot, duration);
                       const isSelected = selected.has(slot.toISOString());
-                      const occupiedNow = !isSelected && !isContinuation && isBusy(slot, duration);
+                      const fullLessonBlocked = !isSelected && !isContinuation && !canStartLessonAt(slot);
+                      const cellOccupied = isThirtyMinuteCellOccupied(slot);
 
                       const cellDisabled =
                         isContinuation /* second half of a selection is non-clickable */ ||
-                        !inHours || isPast || occupiedNow || (!canBook && !isSelected);
+                        !inHours || isPast || fullLessonBlocked || (!canBook && !isSelected);
 
                       return (
                         <button
@@ -516,7 +517,7 @@ export default function Book() {
                             "border-r last:border-r-0 h-7 text-[10px] transition-colors",
                             !inHours && "bg-amber-100/60 dark:bg-amber-950/30",
                             inHours && !cellDisabled && "hover:bg-primary/10",
-                            inHours && occupiedNow && "bg-destructive/10",
+                            inHours && (cellOccupied || fullLessonBlocked) && "bg-destructive/10",
                             inHours && isPast && !isSelected && !isContinuation && "bg-muted/40",
                             (isSelected || isContinuation) && "bg-primary text-primary-foreground hover:bg-primary",
                           )}
