@@ -266,14 +266,15 @@ export default function Book() {
     if (selected.size === 0) return;
     const slots = Array.from(selected).sort();
 
-    // Final guard: re-check each selected slot against busy/booked ranges
-    // (covers Google Calendar busy times that the server-side RPC doesn't see).
+    // Final guard: a lesson can only be confirmed if its full duration is free.
     for (const iso of slots) {
       const slot = new Date(iso);
-      if (isBusy(slot, duration)) {
+      if (!canStartLessonAt(slot)) {
         toast({
           title: "Slot no longer available",
-          description: "Yves is busy at that time. Please pick another slot.",
+          description: duration === 60
+            ? "A 60-minute lesson needs two available 30-minute cells. Please pick a full hour."
+            : "Yves is busy at that time. Please pick another slot.",
           variant: "destructive",
         });
         setSelected((prev) => {
