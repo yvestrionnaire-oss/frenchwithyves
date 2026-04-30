@@ -81,10 +81,9 @@ export default function Landing() {
           One hour at <strong>$20</strong>. Buy a package and save more as you commit to your progress. <span className="font-semibold text-primary">The 30-minute trial lesson is free.</span>
         </p>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <PackageCard lessons={1} pricePerLesson={20} discount={0} />
-          <PackageCard lessons={5} pricePerLesson={20} discount={3} />
-          <PackageCard lessons={10} pricePerLesson={20} discount={6} highlight />
-          <PackageCard lessons={20} pricePerLesson={20} discount={9} />
+          {PACKAGES.map((p) => (
+            <PackageCard key={p.slug} pkg={p} />
+          ))}
         </div>
         <p className="mx-auto mt-6 max-w-2xl text-center text-sm text-secondaryText">
           Each lesson lasts one hour. Packages are paid upfront via the secure link I send by email.
@@ -220,10 +219,9 @@ function StatCard({ icon, value, label }: { icon: React.ReactNode; value: string
   );
 }
 
-function PackageCard({ lessons, pricePerLesson, discount, highlight }: { lessons: number; pricePerLesson: number; discount: number; highlight?: boolean }) {
-  const subtotal = lessons * pricePerLesson;
-  const total = subtotal * (1 - discount / 100);
-  const effective = total / lessons;
+function PackageCard({ pkg }: { pkg: PackageDef }) {
+  const { subtotal, discountPct, pricePerHour } = packageMath(pkg);
+  const highlight = pkg.highlight;
   return (
     <div className={`fw-card relative p-6 ${highlight ? "ring-2 ring-primary" : ""}`}>
       {highlight && (
@@ -232,18 +230,18 @@ function PackageCard({ lessons, pricePerLesson, discount, highlight }: { lessons
         </span>
       )}
       <div className="mb-3 flex items-baseline justify-between">
-        <h3 className="text-lg font-bold">{lessons} {lessons === 1 ? "lesson" : "lessons"}</h3>
-        {discount > 0 && (
-          <span className="rounded-full bg-secondary px-2 py-1 text-xs font-bold text-primary">−{discount}%</span>
+        <h3 className="text-lg font-bold">{pkg.lessons} {pkg.lessons === 1 ? "lesson" : "lessons"}</h3>
+        {discountPct > 0 && (
+          <span className="rounded-full bg-secondary px-2 py-1 text-xs font-bold text-primary">−{discountPct}%</span>
         )}
       </div>
       <div className="flex items-baseline gap-1">
-        <span className="text-3xl font-bold">${total.toFixed(0)}</span>
+        <span className="text-3xl font-bold">${pkg.priceUsd}</span>
         <span className="text-sm text-secondaryText">total</span>
       </div>
       <p className="mt-1 text-sm text-secondaryText">
-        ${effective.toFixed(2)} / hour
-        {discount > 0 && <span className="ml-2 text-xs line-through">${subtotal}</span>}
+        ${pricePerHour.toFixed(2)} / hour
+        {discountPct > 0 && <span className="ml-2 text-xs line-through">${subtotal}</span>}
       </p>
     </div>
   );
