@@ -126,9 +126,20 @@ export default function Book() {
       .map((r) => ({ start: r.start_at, end: r.end_at }));
     setBusy([...calendarBusy, ...otherBooked]);
 
-    // Default mode: trial if available & unused, else regular
-    if (hasTrial && !used) setMode("trial");
-    else setMode("regular");
+    // Default mode:
+    //  - ?mode= query param wins (when valid for this user)
+    //  - else: regular if user has credits
+    //  - else: trial if approved & unused
+    //  - else: regular (will show "no credits" guard)
+    const credits = typeof balRes.data === "number" ? balRes.data : 0;
+    const requested = params.get("mode");
+    const trialAvailable = hasTrial && !used;
+    let nextMode: "trial" | "regular" = "regular";
+    if (requested === "trial" && trialAvailable) nextMode = "trial";
+    else if (requested === "regular") nextMode = "regular";
+    else if (credits > 0) nextMode = "regular";
+    else if (trialAvailable) nextMode = "trial";
+    setMode(nextMode);
 
     setLoading(false);
   }
