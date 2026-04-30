@@ -176,10 +176,16 @@ export default function Book() {
     return ranges;
   }, [lessons, busy, rescheduleId]);
 
-  function isBusy(slotStart: Date, durationMin: number): boolean {
+  function rangeOverlapsOccupied(slotStart: Date, durationMin: number): boolean {
     const s = slotStart.getTime();
     const e = s + durationMin * 60_000;
     if (occupied.some(([os, oe]) => os < e && oe > s)) return true;
+    return false;
+  }
+
+  function selectedOverlapsRange(slotStart: Date, durationMin: number): boolean {
+    const s = slotStart.getTime();
+    const e = s + durationMin * 60_000;
     // Also exclude slots overlapping with currently-selected (other) slots
     const slotKey = slotStart.toISOString();
     for (const iso of selected) {
@@ -189,6 +195,28 @@ export default function Book() {
       if (os < e && oe > s) return true;
     }
     return false;
+  }
+
+  function isBusy(slotStart: Date, durationMin: number): boolean {
+    return rangeOverlapsOccupied(slotStart, durationMin) || selectedOverlapsRange(slotStart, durationMin);
+  }
+
+  function isThirtyMinuteCellOccupied(slotStart: Date): boolean {
+    return rangeOverlapsOccupied(slotStart, 30);
+  }
+
+  function canStartLessonAt(slotStart: Date): boolean {
+    if (slotStart.getTime() < Date.now()) return false;
+    if (!isWithinTeachingHours(slotStart, duration)) return false;
+
+    // A 60-minute lesson must have BOTH 30-minute cells free: the clicked cell
+    // and the next cell. This prevents taking a half-free / half-busy hour.
+    if (duration === 60) {
+      const secondHalf = new Date(slotStart.getTime() + 30 * 60_000);
+      return !isThirtyMinuteCellOccupied(slotStart) && !isThirtyMinuteCellOccupied(secondHalf) && !selectedOverlapsRange(slotStart, 60);
+    }
+
+    return !isBusy(slotStart, duration);
   }
 
   // Reschedule mode → derive duration from existing lesson; only 1 selection allowed
@@ -214,9 +242,7 @@ export default function Book() {
 
   function toggle(slot: Date) {
     if (!canBook) return;
-    if (slot.getTime() < Date.now()) return;
-    if (!isWithinTeachingHours(slot, duration)) return;
-    if (isBusy(slot, duration)) return;
+    if (!canStartLessonAt(slot)) return;
     const key = slot.toISOString();
     setSelected((prev) => {
       const next = new Set(prev);
