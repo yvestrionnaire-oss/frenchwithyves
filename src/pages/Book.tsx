@@ -360,7 +360,9 @@ export default function Book() {
                 onClick={() => { setMode("trial"); setSelected(new Set()); }}
                 className={cn(
                   "rounded-lg border px-4 py-2 text-sm font-medium transition-colors",
-                  mode === "trial" ? "border-primary bg-primary text-primary-foreground" : "hover:bg-accent",
+                  mode === "trial"
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-transparent text-foreground hover:bg-accent",
                 )}
               >
                 🎁 Free trial (30 min)
@@ -370,7 +372,9 @@ export default function Book() {
                 onClick={() => { setMode("regular"); setSelected(new Set()); }}
                 className={cn(
                   "rounded-lg border px-4 py-2 text-sm font-medium transition-colors",
-                  mode === "regular" ? "border-primary bg-primary text-primary-foreground" : "hover:bg-accent",
+                  mode === "regular"
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-transparent text-foreground hover:bg-accent",
                 )}
               >
                 📚 Regular lesson (60 min · 1 credit)
