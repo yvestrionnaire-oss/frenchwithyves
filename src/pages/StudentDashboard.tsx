@@ -259,7 +259,7 @@ export default function StudentDashboard() {
                 )}
               </div>
               <Button asChild size="lg" disabled={credits < 1 && !canBookTrial}>
-                <Link to="/book">
+                <Link to={credits > 0 ? "/book?mode=regular" : canBookTrial ? "/book?mode=trial" : "/book"}>
                   <CalendarDays className="h-4 w-4" />
                   {credits > 0 || canBookTrial ? `Book ${credits > 0 ? `${credits} lesson${credits === 1 ? "" : "s"}` : "trial"}` : "No credits"}
                 </Link>
