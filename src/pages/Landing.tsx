@@ -4,6 +4,7 @@ import { BookOpen, CalendarDays, CheckCircle, CreditCard, Mail, Send, Sparkles, 
 import portrait from "@/assets/yves-trionnaire-real.jpg";
 import introVideo from "@/assets/yves-introduction.mp4";
 import { useAuth } from "@/lib/auth";
+import { PACKAGES, packageMath, type PackageDef } from "@/lib/packages";
 
 export default function Landing() {
   const { user, role, loading } = useAuth();
