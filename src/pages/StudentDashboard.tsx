@@ -56,7 +56,7 @@ type Proposal = {
 
 export default function StudentDashboard() {
   const { user, signOut } = useAuth();
-  const [params, setParams] = useSearchParams();
+  // Note: trial query-param flow removed.
   const [credits, setCredits] = useState(0);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [packages, setPackages] = useState<Pkg[]>([]);
@@ -76,21 +76,7 @@ export default function StudentDashboard() {
     return () => { void supabase.removeChannel(ch); };
   }, [user]);
 
-  // Auto-request trial if ?trial=1 (signup flow from landing)
-  useEffect(() => {
-    if (!user || loading) return;
-    if (params.get("trial") !== "1") return;
-    const trialPkg = packages.find((p) => p.is_free);
-    const alreadyRequested = requests.some((r) => {
-      const pkg = packages.find((p) => p.id === r.package_id);
-      return pkg?.is_free && r.status !== "cancelled";
-    });
-    if (trialPkg && !alreadyRequested) {
-      void requestPackage(trialPkg, true);
-    }
-    params.delete("trial");
-    setParams(params, { replace: true });
-  }, [user, loading, packages, requests]);
+  // (Free trial auto-request flow removed.)
 
   async function loadAll() {
     setLoading(true);
