@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, CalendarCheck, ChevronLeft, ChevronRight, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, CalendarCheck, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -67,10 +67,7 @@ export default function Book() {
   const [lessons, setLessons] = useState<LessonRow[]>([]);
   const [busy, setBusy] = useState<BusyRange[]>([]);
   const [credits, setCredits] = useState(0);
-  const [trialApproved, setTrialApproved] = useState(false);
-  const [trialUsed, setTrialUsed] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [mode, setMode] = useState<"trial" | "regular">("regular");
   const [weekOffset, setWeekOffset] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -85,7 +82,7 @@ export default function Book() {
 
   async function load() {
     setLoading(true);
-    const [lessonsRes, balRes, reqRes, busyRes, bookedRes] = await Promise.all([
+    const [lessonsRes, balRes, busyRes, bookedRes] = await Promise.all([
       supabase
         .from("lessons")
         .select("id, scheduled_at, duration_minutes, status, lesson_type, student_id")
@@ -93,10 +90,6 @@ export default function Book() {
         .gte("scheduled_at", weekStart.toISOString())
         .lt("scheduled_at", addDays(weekStart, 14).toISOString()),
       supabase.rpc("credit_balance"),
-      supabase
-        .from("purchase_requests")
-        .select("status, package_id, packages!inner(is_free)")
-        .eq("status", "approved"),
       supabase.functions.invoke("get-busy-times", {
         body: { from: weekStart.toISOString(), to: addDays(weekStart, 14).toISOString() },
       }),
@@ -108,38 +101,12 @@ export default function Book() {
 
     setLessons((lessonsRes.data ?? []) as LessonRow[]);
 
-    const used = (lessonsRes.data ?? []).some(
-      (l) => (l as LessonRow).student_id === user!.id && (l as LessonRow).lesson_type === "trial",
-    );
-    setTrialUsed(used);
-
     if (typeof balRes.data === "number") setCredits(balRes.data);
-
-    const hasTrial = (reqRes.data ?? []).some((r) => {
-      const pkg = (r as unknown as { packages: { is_free: boolean } }).packages;
-      return pkg?.is_free;
-    });
-    setTrialApproved(hasTrial);
 
     const calendarBusy = (busyRes.data as { busy?: BusyRange[] } | null)?.busy ?? [];
     const otherBooked: BusyRange[] = ((bookedRes.data as Array<{ start_at: string; end_at: string }> | null) ?? [])
       .map((r) => ({ start: r.start_at, end: r.end_at }));
     setBusy([...calendarBusy, ...otherBooked]);
-
-    // Default mode:
-    //  - ?mode= query param wins (when valid for this user)
-    //  - else: regular if user has credits
-    //  - else: trial if approved & unused
-    //  - else: regular (will show "no credits" guard)
-    const credits = typeof balRes.data === "number" ? balRes.data : 0;
-    const requested = params.get("mode");
-    const trialAvailable = hasTrial && !used;
-    let nextMode: "trial" | "regular" = "regular";
-    if (requested === "trial" && trialAvailable) nextMode = "trial";
-    else if (requested === "regular") nextMode = "regular";
-    else if (credits > 0) nextMode = "regular";
-    else if (trialAvailable) nextMode = "trial";
-    setMode(nextMode);
 
     setLoading(false);
   }
