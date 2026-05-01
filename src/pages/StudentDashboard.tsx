@@ -1,16 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   CalendarDays,
   CheckCircle2,
   Clock,
   CreditCard,
-  GraduationCap,
   Loader2,
   LogOut,
   Mail,
   MailQuestion,
-  Sparkles,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
