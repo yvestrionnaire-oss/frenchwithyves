@@ -192,13 +192,9 @@ export default function Book() {
     [rescheduleId, lessons],
   );
   const isRescheduling = !!rescheduleLesson;
-  const duration = isRescheduling
-    ? rescheduleLesson!.duration_minutes
-    : mode === "trial"
-      ? 30
-      : 60;
-  const canBook = isRescheduling ? true : mode === "trial" ? trialApproved && !trialUsed : credits >= 1;
-  const maxSlots = isRescheduling ? 1 : mode === "trial" ? 1 : credits;
+  const duration = isRescheduling ? rescheduleLesson!.duration_minutes : 60;
+  const canBook = isRescheduling ? true : credits >= 1;
+  const maxSlots = isRescheduling ? 1 : credits;
 
   // For 60-min lessons, a cell is a "continuation" if a selection starts 30 min before it.
   function isContinuationOf(slot: Date): boolean {
@@ -216,7 +212,7 @@ export default function Book() {
       if (next.has(key)) next.delete(key);
       else {
         if (next.size >= maxSlots) {
-          if (mode === "trial" || isRescheduling) {
+          if (isRescheduling) {
             next.clear();
             next.add(key);
           } else {
@@ -273,7 +269,7 @@ export default function Book() {
     }
 
     const { data: booked, error } = await supabase.functions.invoke("book-with-availability", {
-      body: { slots, lessonType: mode },
+      body: { slots, lessonType: "regular" },
     });
     if (error || booked?.error) {
       toast({
@@ -317,14 +313,9 @@ export default function Book() {
             {isRescheduling ? (
               <Badge variant="secondary">Rescheduling · {duration} min</Badge>
             ) : (
-              <>
-                {mode === "regular" && (
-                  <Badge variant="secondary">
-                    {credits} credit{credits === 1 ? "" : "s"} · {credits} lesson{credits === 1 ? "" : "s"} to book
-                  </Badge>
-                )}
-                {mode === "trial" && <Badge variant="secondary"><Sparkles className="h-3 w-3" /> Free trial · 30 min</Badge>}
-              </>
+              <Badge variant="secondary">
+                {credits} credit{credits === 1 ? "" : "s"} · {credits} lesson{credits === 1 ? "" : "s"} to book
+              </Badge>
             )}
           </div>
         </div>
@@ -333,58 +324,19 @@ export default function Book() {
       <main className="container mx-auto max-w-7xl px-4 py-8">
         <div className="mb-6">
           <h1 className="text-3xl font-semibold tracking-tight">
-            {isRescheduling ? "Pick a new time" : `Pick your time${mode === "regular" && credits > 1 ? "s" : ""}`}
+            {isRescheduling ? "Pick a new time" : `Pick your time${credits > 1 ? "s" : ""}`}
           </h1>
           <p className="mt-1 text-muted-foreground">
             {isRescheduling
               ? `Currently ${new Date(rescheduleLesson!.scheduled_at).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}. Pick a new slot below.`
-              : mode === "trial"
-                ? "Choose one 30-min slot for your free trial."
-                : `Yves teaches between 5:30 AM and 7:00 PM Peru time. Pick up to ${credits} slot${credits === 1 ? "" : "s"} — 1 credit = 1 lesson.`}
+              : `Yves teaches between 5:30 AM and 7:00 PM Peru time. Pick up to ${credits} slot${credits === 1 ? "" : "s"} — 1 credit = 1 lesson.`}
           </p>
         </div>
-
-        {/* Mode selector — only show toggle when both options exist */}
-        {!isRescheduling && trialApproved && !trialUsed && credits >= 1 && (
-          <Card className="mb-6 p-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm text-muted-foreground mr-2">Booking:</span>
-              <button
-                type="button"
-                onClick={() => { setMode("trial"); setSelected(new Set()); }}
-                className={cn(
-                  "rounded-lg border px-4 py-2 text-sm font-medium transition-colors",
-                  mode === "trial"
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-transparent text-foreground hover:bg-accent",
-                )}
-              >
-                🎁 Free trial (30 min)
-              </button>
-              <button
-                type="button"
-                onClick={() => { setMode("regular"); setSelected(new Set()); }}
-                className={cn(
-                  "rounded-lg border px-4 py-2 text-sm font-medium transition-colors",
-                  mode === "regular"
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-transparent text-foreground hover:bg-accent",
-                )}
-              >
-                📚 Regular lesson (60 min · 1 credit)
-              </button>
-            </div>
-          </Card>
-        )}
 
         {!canBook && (
           <Card className="mb-6 border-destructive/50 p-4">
             <p className="text-sm text-destructive">
-              {mode === "trial"
-                ? trialUsed
-                  ? "You've already used your trial."
-                  : "Request a trial from your dashboard first."
-                : "You don't have any credits. Request a package from your dashboard."}
+              You don't have any credits. Request a package from your dashboard.
             </p>
           </Card>
         )}
