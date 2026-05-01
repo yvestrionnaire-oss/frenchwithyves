@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, CalendarCheck, ChevronLeft, ChevronRight, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, CalendarCheck, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -67,10 +67,7 @@ export default function Book() {
   const [lessons, setLessons] = useState<LessonRow[]>([]);
   const [busy, setBusy] = useState<BusyRange[]>([]);
   const [credits, setCredits] = useState(0);
-  const [trialApproved, setTrialApproved] = useState(false);
-  const [trialUsed, setTrialUsed] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [mode, setMode] = useState<"trial" | "regular">("regular");
   const [weekOffset, setWeekOffset] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -85,7 +82,7 @@ export default function Book() {
 
   async function load() {
     setLoading(true);
-    const [lessonsRes, balRes, reqRes, busyRes, bookedRes] = await Promise.all([
+    const [lessonsRes, balRes, busyRes, bookedRes] = await Promise.all([
       supabase
         .from("lessons")
         .select("id, scheduled_at, duration_minutes, status, lesson_type, student_id")
@@ -93,10 +90,6 @@ export default function Book() {
         .gte("scheduled_at", weekStart.toISOString())
         .lt("scheduled_at", addDays(weekStart, 14).toISOString()),
       supabase.rpc("credit_balance"),
-      supabase
-        .from("purchase_requests")
-        .select("status, package_id, packages!inner(is_free)")
-        .eq("status", "approved"),
       supabase.functions.invoke("get-busy-times", {
         body: { from: weekStart.toISOString(), to: addDays(weekStart, 14).toISOString() },
       }),
@@ -108,38 +101,12 @@ export default function Book() {
 
     setLessons((lessonsRes.data ?? []) as LessonRow[]);
 
-    const used = (lessonsRes.data ?? []).some(
-      (l) => (l as LessonRow).student_id === user!.id && (l as LessonRow).lesson_type === "trial",
-    );
-    setTrialUsed(used);
-
     if (typeof balRes.data === "number") setCredits(balRes.data);
-
-    const hasTrial = (reqRes.data ?? []).some((r) => {
-      const pkg = (r as unknown as { packages: { is_free: boolean } }).packages;
-      return pkg?.is_free;
-    });
-    setTrialApproved(hasTrial);
 
     const calendarBusy = (busyRes.data as { busy?: BusyRange[] } | null)?.busy ?? [];
     const otherBooked: BusyRange[] = ((bookedRes.data as Array<{ start_at: string; end_at: string }> | null) ?? [])
       .map((r) => ({ start: r.start_at, end: r.end_at }));
     setBusy([...calendarBusy, ...otherBooked]);
-
-    // Default mode:
-    //  - ?mode= query param wins (when valid for this user)
-    //  - else: regular if user has credits
-    //  - else: trial if approved & unused
-    //  - else: regular (will show "no credits" guard)
-    const credits = typeof balRes.data === "number" ? balRes.data : 0;
-    const requested = params.get("mode");
-    const trialAvailable = hasTrial && !used;
-    let nextMode: "trial" | "regular" = "regular";
-    if (requested === "trial" && trialAvailable) nextMode = "trial";
-    else if (requested === "regular") nextMode = "regular";
-    else if (credits > 0) nextMode = "regular";
-    else if (trialAvailable) nextMode = "trial";
-    setMode(nextMode);
 
     setLoading(false);
   }
@@ -225,13 +192,9 @@ export default function Book() {
     [rescheduleId, lessons],
   );
   const isRescheduling = !!rescheduleLesson;
-  const duration = isRescheduling
-    ? rescheduleLesson!.duration_minutes
-    : mode === "trial"
-      ? 30
-      : 60;
-  const canBook = isRescheduling ? true : mode === "trial" ? trialApproved && !trialUsed : credits >= 1;
-  const maxSlots = isRescheduling ? 1 : mode === "trial" ? 1 : credits;
+  const duration = isRescheduling ? rescheduleLesson!.duration_minutes : 60;
+  const canBook = isRescheduling ? true : credits >= 1;
+  const maxSlots = isRescheduling ? 1 : credits;
 
   // For 60-min lessons, a cell is a "continuation" if a selection starts 30 min before it.
   function isContinuationOf(slot: Date): boolean {
@@ -249,7 +212,7 @@ export default function Book() {
       if (next.has(key)) next.delete(key);
       else {
         if (next.size >= maxSlots) {
-          if (mode === "trial" || isRescheduling) {
+          if (isRescheduling) {
             next.clear();
             next.add(key);
           } else {
@@ -306,7 +269,7 @@ export default function Book() {
     }
 
     const { data: booked, error } = await supabase.functions.invoke("book-with-availability", {
-      body: { slots, lessonType: mode },
+      body: { slots, lessonType: "regular" },
     });
     if (error || booked?.error) {
       toast({
@@ -350,14 +313,9 @@ export default function Book() {
             {isRescheduling ? (
               <Badge variant="secondary">Rescheduling · {duration} min</Badge>
             ) : (
-              <>
-                {mode === "regular" && (
-                  <Badge variant="secondary">
-                    {credits} credit{credits === 1 ? "" : "s"} · {credits} lesson{credits === 1 ? "" : "s"} to book
-                  </Badge>
-                )}
-                {mode === "trial" && <Badge variant="secondary"><Sparkles className="h-3 w-3" /> Free trial · 30 min</Badge>}
-              </>
+              <Badge variant="secondary">
+                {credits} credit{credits === 1 ? "" : "s"} · {credits} lesson{credits === 1 ? "" : "s"} to book
+              </Badge>
             )}
           </div>
         </div>
@@ -366,58 +324,19 @@ export default function Book() {
       <main className="container mx-auto max-w-7xl px-4 py-8">
         <div className="mb-6">
           <h1 className="text-3xl font-semibold tracking-tight">
-            {isRescheduling ? "Pick a new time" : `Pick your time${mode === "regular" && credits > 1 ? "s" : ""}`}
+            {isRescheduling ? "Pick a new time" : `Pick your time${credits > 1 ? "s" : ""}`}
           </h1>
           <p className="mt-1 text-muted-foreground">
             {isRescheduling
               ? `Currently ${new Date(rescheduleLesson!.scheduled_at).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}. Pick a new slot below.`
-              : mode === "trial"
-                ? "Choose one 30-min slot for your free trial."
-                : `Yves teaches between 5:30 AM and 7:00 PM Peru time. Pick up to ${credits} slot${credits === 1 ? "" : "s"} — 1 credit = 1 lesson.`}
+              : `Yves teaches between 5:30 AM and 7:00 PM Peru time. Pick up to ${credits} slot${credits === 1 ? "" : "s"} — 1 credit = 1 lesson.`}
           </p>
         </div>
-
-        {/* Mode selector — only show toggle when both options exist */}
-        {!isRescheduling && trialApproved && !trialUsed && credits >= 1 && (
-          <Card className="mb-6 p-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm text-muted-foreground mr-2">Booking:</span>
-              <button
-                type="button"
-                onClick={() => { setMode("trial"); setSelected(new Set()); }}
-                className={cn(
-                  "rounded-lg border px-4 py-2 text-sm font-medium transition-colors",
-                  mode === "trial"
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-transparent text-foreground hover:bg-accent",
-                )}
-              >
-                🎁 Free trial (30 min)
-              </button>
-              <button
-                type="button"
-                onClick={() => { setMode("regular"); setSelected(new Set()); }}
-                className={cn(
-                  "rounded-lg border px-4 py-2 text-sm font-medium transition-colors",
-                  mode === "regular"
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-transparent text-foreground hover:bg-accent",
-                )}
-              >
-                📚 Regular lesson (60 min · 1 credit)
-              </button>
-            </div>
-          </Card>
-        )}
 
         {!canBook && (
           <Card className="mb-6 border-destructive/50 p-4">
             <p className="text-sm text-destructive">
-              {mode === "trial"
-                ? trialUsed
-                  ? "You've already used your trial."
-                  : "Request a trial from your dashboard first."
-                : "You don't have any credits. Request a package from your dashboard."}
+              You don't have any credits. Request a package from your dashboard.
             </p>
           </Card>
         )}
@@ -546,7 +465,7 @@ export default function Book() {
             <div className="text-sm">
               {selected.size === 0 ? (
                 <span className="text-muted-foreground">
-                  {mode === "trial" ? "Pick one 30-min slot" : `Pick up to ${maxSlots} slot${maxSlots === 1 ? "" : "s"}`}
+                  {`Pick up to ${maxSlots} slot${maxSlots === 1 ? "" : "s"}`}
                 </span>
               ) : (
                 <>
@@ -558,9 +477,7 @@ export default function Book() {
                       : `${selected.size} lesson${selected.size === 1 ? "" : "s"} selected`}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {mode === "trial"
-                      ? "Free trial · 30 min"
-                      : `${selected.size} × 60 min · ${selected.size} credit${selected.size === 1 ? "" : "s"}`}
+                    {`${selected.size} × 60 min · ${selected.size} credit${selected.size === 1 ? "" : "s"}`}
                   </div>
                 </>
               )}

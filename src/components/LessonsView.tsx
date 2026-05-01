@@ -138,11 +138,10 @@ function LessonRow({ lesson, onReschedule, onCancel, rescheduleLabel }: { lesson
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <Badge variant={isPast ? "secondary" : "default"}>{isPast ? "Completed" : "Scheduled"}</Badge>
-            {lesson.lesson_type === "trial" && <Badge variant="outline">🎁 Trial</Badge>}
           </div>
           <div className="mt-1 text-lg font-semibold">{time}</div>
           <div className="text-xs text-muted-foreground">
-            {lesson.counterpartName} · {lesson.duration_minutes}-Minute {lesson.lesson_type === "trial" ? "Trial" : "Lesson"}
+            {lesson.counterpartName} · {lesson.duration_minutes}-Minute Lesson
           </div>
         </div>
         <div className="flex items-center gap-2">

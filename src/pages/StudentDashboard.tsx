@@ -1,16 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   CalendarDays,
   CheckCircle2,
   Clock,
   CreditCard,
-  GraduationCap,
   Loader2,
   LogOut,
   Mail,
   MailQuestion,
-  Sparkles,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -58,7 +56,7 @@ type Proposal = {
 
 export default function StudentDashboard() {
   const { user, signOut } = useAuth();
-  const [params, setParams] = useSearchParams();
+  // Note: trial query-param flow removed.
   const [credits, setCredits] = useState(0);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [packages, setPackages] = useState<Pkg[]>([]);
@@ -78,21 +76,7 @@ export default function StudentDashboard() {
     return () => { void supabase.removeChannel(ch); };
   }, [user]);
 
-  // Auto-request trial if ?trial=1 (signup flow from landing)
-  useEffect(() => {
-    if (!user || loading) return;
-    if (params.get("trial") !== "1") return;
-    const trialPkg = packages.find((p) => p.is_free);
-    const alreadyRequested = requests.some((r) => {
-      const pkg = packages.find((p) => p.id === r.package_id);
-      return pkg?.is_free && r.status !== "cancelled";
-    });
-    if (trialPkg && !alreadyRequested) {
-      void requestPackage(trialPkg, true);
-    }
-    params.delete("trial");
-    setParams(params, { replace: true });
-  }, [user, loading, packages, requests]);
+  // (Free trial auto-request flow removed.)
 
   async function loadAll() {
     setLoading(true);
@@ -187,15 +171,8 @@ export default function StudentDashboard() {
     [lessons],
   );
   const activeRequests = requests.filter((r) => r.status !== "cancelled");
-  const trialApproved = requests.some((r) => r.status === "approved");
-  const trialBooked = lessons.some((l) => l.lesson_type === "trial" && l.status !== "cancelled");
-  const canBookTrial = trialApproved && !trialBooked;
-  const trialEverRequested = requests.some((r) => {
-    const pkg = packages.find((p) => p.id === r.package_id);
-    return pkg?.is_free;
-  });
-  // Hide the free trial package once it's been requested/booked — it can only be taken once.
-  const visiblePackages = packages.filter((p) => !p.is_free || !(trialEverRequested || trialBooked));
+  // Free trial removed — never show free packages in the request list.
+  const visiblePackages = packages.filter((p) => !p.is_free);
 
   // Build LessonItem[] for the unified view
   const lessonItems: LessonItem[] = useMemo(() => {
@@ -254,14 +231,11 @@ export default function StudentDashboard() {
                 <p className="mt-2 text-xs text-muted-foreground">
                   💡 Each credit = one 60-minute lesson. Book them all at once, or one at a time.
                 </p>
-                {trialApproved && canBookTrial && (
-                  <p className="mt-2 text-xs font-medium text-primary">🎁 Your free trial is approved — go book it!</p>
-                )}
               </div>
-              <Button asChild size="lg" disabled={credits < 1 && !canBookTrial}>
-                <Link to={credits > 0 ? "/book?mode=regular" : canBookTrial ? "/book?mode=trial" : "/book"}>
+              <Button asChild size="lg" disabled={credits < 1}>
+                <Link to={credits > 0 ? "/book" : "/book"}>
                   <CalendarDays className="h-4 w-4" />
-                  {credits > 0 || canBookTrial ? `Book ${credits > 0 ? `${credits} lesson${credits === 1 ? "" : "s"}` : "trial"}` : "No credits"}
+                  {credits > 0 ? `Book ${credits} lesson${credits === 1 ? "" : "s"}` : "No credits"}
                 </Link>
               </Button>
             </CardContent>
@@ -366,11 +340,7 @@ export default function StudentDashboard() {
                       <CardContent className="space-y-2 p-3">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2 min-w-0">
-                            {pkg?.is_free ? (
-                              <Sparkles className="h-4 w-4 shrink-0 text-primary" />
-                            ) : (
-                              <CreditCard className="h-4 w-4 shrink-0 text-primary" />
-                            )}
+                            <CreditCard className="h-4 w-4 shrink-0 text-primary" />
                             <div className="min-w-0">
                               <div className="truncate text-sm font-semibold">{pkg?.name ?? "Package"}</div>
                               <div className="text-xs text-muted-foreground">
@@ -401,28 +371,18 @@ export default function StudentDashboard() {
             Pick a package — Yves will email you a payment link, and once payment is confirmed,
             credits appear here so you can book your slots.
           </p>
-          {trialBooked && (
-            <div className="mb-4 rounded-lg border border-primary/40 bg-primary/5 p-4 text-sm">
-              <strong className="text-primary">🎉 Your free trial is booked!</strong>
-              <p className="mt-1 text-muted-foreground">
-                You've already used your one-time free trial lesson. Pick a package below to keep learning.
-              </p>
-            </div>
-          )}
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {visiblePackages.map((pkg) => (
               <Card key={pkg.id} className={pkg.is_recommended ? "border-primary" : ""}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
-                    <CardTitle className="text-base">
-                      {pkg.is_free && <Sparkles className="inline h-4 w-4 text-primary" />} {pkg.name}
-                    </CardTitle>
+                    <CardTitle className="text-base">{pkg.name}</CardTitle>
                     {pkg.is_recommended && <Badge>Popular</Badge>}
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="text-2xl font-semibold">
-                    {pkg.is_free ? "Free" : `$${(pkg.price_cents / 100).toFixed(0)}`}
+                    ${(pkg.price_cents / 100).toFixed(0)}
                   </div>
                   <p className="text-xs text-muted-foreground">{pkg.description}</p>
                   <Button
@@ -433,8 +393,6 @@ export default function StudentDashboard() {
                   >
                     {requesting === pkg.id ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : pkg.is_free ? (
-                      <><GraduationCap className="h-4 w-4" /> Request trial</>
                     ) : (
                       <><CreditCard className="h-4 w-4" /> Request package</>
                     )}
@@ -453,7 +411,7 @@ function RequestStatusLine({ status }: { status: Request["status"] }) {
   const map: Record<Request["status"], { icon: React.ReactNode; label: string; tone: string }> = {
     pending: { icon: <Clock className="h-4 w-4" />, label: "Awaiting Yves' approval", tone: "text-amber-700 dark:text-amber-400" },
     payment_link_sent: { icon: <MailQuestion className="h-4 w-4" />, label: "Payment link sent — check your email", tone: "text-blue-700 dark:text-blue-400" },
-    approved: { icon: <CheckCircle2 className="h-4 w-4" />, label: "Trial approved — go book it!", tone: "text-emerald-700 dark:text-emerald-400" },
+    approved: { icon: <CheckCircle2 className="h-4 w-4" />, label: "Approved", tone: "text-emerald-700 dark:text-emerald-400" },
     paid: { icon: <CheckCircle2 className="h-4 w-4" />, label: "Paid — credits added", tone: "text-emerald-700 dark:text-emerald-400" },
     cancelled: { icon: <X className="h-4 w-4" />, label: "Cancelled", tone: "text-muted-foreground" },
   };

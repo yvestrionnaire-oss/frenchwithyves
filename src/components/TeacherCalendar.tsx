@@ -196,7 +196,6 @@ export function TeacherCalendar({ profiles }: { profiles: Profile[] }) {
                         style={{ minHeight: 28 }}
                       >
                         <div className="font-medium truncate">
-                          {startsHere.lesson_type === "trial" ? "🎁 " : ""}
                           {profile?.full_name ?? "Student"}
                         </div>
                         <div className="text-muted-foreground truncate">{startsHere.duration_minutes}m</div>
