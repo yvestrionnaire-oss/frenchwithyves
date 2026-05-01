@@ -411,7 +411,7 @@ function RequestStatusLine({ status }: { status: Request["status"] }) {
   const map: Record<Request["status"], { icon: React.ReactNode; label: string; tone: string }> = {
     pending: { icon: <Clock className="h-4 w-4" />, label: "Awaiting Yves' approval", tone: "text-amber-700 dark:text-amber-400" },
     payment_link_sent: { icon: <MailQuestion className="h-4 w-4" />, label: "Payment link sent — check your email", tone: "text-blue-700 dark:text-blue-400" },
-    approved: { icon: <CheckCircle2 className="h-4 w-4" />, label: "Trial approved — go book it!", tone: "text-emerald-700 dark:text-emerald-400" },
+    approved: { icon: <CheckCircle2 className="h-4 w-4" />, label: "Approved", tone: "text-emerald-700 dark:text-emerald-400" },
     paid: { icon: <CheckCircle2 className="h-4 w-4" />, label: "Paid — credits added", tone: "text-emerald-700 dark:text-emerald-400" },
     cancelled: { icon: <X className="h-4 w-4" />, label: "Cancelled", tone: "text-muted-foreground" },
   };

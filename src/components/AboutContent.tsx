@@ -158,7 +158,7 @@ function AboutPanel() {
   return (
     <>
       <div className="mb-5 rounded-lg border border-primary bg-secondary p-4">
-        <strong>Trial lesson available</strong>
+        <strong>Personalized first lesson</strong>
         <p className="mt-1 text-sm text-secondaryText">
           Start with a first lesson to discuss your interests, objectives, preferred schedule, and the best approach for regular progress.
         </p>
