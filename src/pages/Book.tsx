@@ -465,7 +465,7 @@ export default function Book() {
             <div className="text-sm">
               {selected.size === 0 ? (
                 <span className="text-muted-foreground">
-                  {mode === "trial" ? "Pick one 30-min slot" : `Pick up to ${maxSlots} slot${maxSlots === 1 ? "" : "s"}`}
+                  {`Pick up to ${maxSlots} slot${maxSlots === 1 ? "" : "s"}`}
                 </span>
               ) : (
                 <>
@@ -477,9 +477,7 @@ export default function Book() {
                       : `${selected.size} lesson${selected.size === 1 ? "" : "s"} selected`}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {mode === "trial"
-                      ? "Free trial · 30 min"
-                      : `${selected.size} × 60 min · ${selected.size} credit${selected.size === 1 ? "" : "s"}`}
+                    {`${selected.size} × 60 min · ${selected.size} credit${selected.size === 1 ? "" : "s"}`}
                   </div>
                 </>
               )}
