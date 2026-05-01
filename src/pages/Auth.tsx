@@ -14,7 +14,6 @@ export default function Auth() {
   const [params] = useSearchParams();
   const { user, role, loading } = useAuth();
   const initialMode = params.get("mode") === "signin" ? "signin" : "signup";
-  const requestTrial = params.get("trial") === "1";
   const [mode, setMode] = useState<"signup" | "signin" | "forgot">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,10 +24,10 @@ export default function Auth() {
   useEffect(() => {
     if (loading) return;
     if (user && role) {
-      const dest = role === "teacher" ? "/teacher" : requestTrial ? "/student?trial=1" : "/student";
+      const dest = role === "teacher" ? "/teacher" : "/student";
       navigate(dest, { replace: true });
     }
-  }, [user, role, loading, navigate, requestTrial]);
+  }, [user, role, loading, navigate]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,9 +93,7 @@ export default function Auth() {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {mode === "signup"
-              ? requestTrial
-                ? "Sign up to request your free trial lesson."
-                : "Sign up to request a lesson package and book your slots."
+              ? "Sign up to request a lesson package and book your slots."
               : mode === "signin"
                 ? "Welcome back. Sign in to view your dashboard."
                 : "Enter your email and we'll send you a link to set a new password."}

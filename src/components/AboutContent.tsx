@@ -95,12 +95,7 @@ export default function AboutContent() {
             The calendar unlocks. Pick any open time — a <strong>Google Meet</strong> invite is sent for each lesson.
           </StepCard>
         </div>
-        <div className="mx-auto mt-8 max-w-2xl rounded-lg border border-primary/30 bg-primary/5 p-5 text-center">
-          <p className="text-sm">
-            <strong>🎁 Free trial lesson</strong> — request it, I'll confirm by email, and you can book a 30-min slot at no cost.
-          </p>
-        </div>
-        <p className="mx-auto mt-4 max-w-2xl text-center text-sm text-secondaryText">
+        <p className="mx-auto mt-8 max-w-2xl text-center text-sm text-secondaryText">
           <strong>Need to reschedule?</strong> Cancel from your dashboard up to 5 minutes before your lesson and book a new slot any time.
         </p>
       </section>
@@ -329,13 +324,13 @@ const REVIEWS_LONG: [string, string][] = [
   ["Rae · 9 lessons", "Great teacher! Highly recommend!"],
   ["Adam · 35 lessons", "What a fantastic initial lesson. Yves very quickly established my level and pitched the lesson just right. Lots of correction, which I really need. I'm looking forward to my next lesson."],
   ["Mohamed · 1 lesson", "Good listener with patience to give time for the learner to think out sentences. I am pleased to work with Yves and I will book further hours."],
-  ["Oleg · 1 lesson", "The trial class with Yves was convincing enough for me to book a course with him."],
+  ["Oleg · 1 lesson", "My first class with Yves was convincing enough for me to book a course with him."],
   ["Kathy · 1 lesson", "Excellent 1st class with Yves. He was well prepared and really positive and easy to talk with. I look forward to future lessons. Thank you!"],
   ["Kerri · 2 lessons", "Organised, professional and encouraging! Well structured class with good pace and approach — awesome!"],
   ["Sungmi Kary · 147 lessons", "He was indeed the perfect teacher for me!"],
   ["Ewa · 131 lessons", "This teacher knows how to teach and how to make progress every single class. Thank you, Yves!"],
   ["gerry · 1 lesson", "J'aime bien sa patience et il corrige mes fautes."],
-  ["Luke · 1 lesson", "Super start, looking forward to more. I really liked the trial class. I think he's a good teacher."],
+  ["Luke · 1 lesson", "Super start, looking forward to more. I really liked the first class. I think he's a good teacher."],
   ["Jamie · 1 lesson", "Yves was very patient and helped my confidence greatly. Will be scheduling many sessions with him. Merci beaucoup!"],
   ["Ewa · 122 lessons", "I'm happy from my first lesson. Very good explanation and many tips. Thank you Yves."],
   ["Leea · 25 lessons", "Yves is an awesome teacher. He is punctual, prepared, and patient! Merci!"],
