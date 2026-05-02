@@ -150,12 +150,12 @@ export default function Book() {
     return false;
   }
 
-  function selectedOverlapsRange(slotStart: Date, durationMin: number): boolean {
+  function selectedOverlapsRange(slotStart: Date, durationMin: number, selection: Set<string> = selected): boolean {
     const s = slotStart.getTime();
     const e = s + durationMin * 60_000;
     // Also exclude slots overlapping with currently-selected (other) slots
     const slotKey = slotStart.toISOString();
-    for (const iso of selected) {
+    for (const iso of selection) {
       if (iso === slotKey) continue;
       const os = new Date(iso).getTime();
       const oe = os + 60 * 60_000; // selected are always regular (60 min) when multi
@@ -164,26 +164,29 @@ export default function Book() {
     return false;
   }
 
-  function isBusy(slotStart: Date, durationMin: number): boolean {
-    return rangeOverlapsOccupied(slotStart, durationMin) || selectedOverlapsRange(slotStart, durationMin);
+  function isBusy(slotStart: Date, durationMin: number, selection: Set<string> = selected): boolean {
+    return rangeOverlapsOccupied(slotStart, durationMin) || selectedOverlapsRange(slotStart, durationMin, selection);
   }
 
   function isThirtyMinuteCellOccupied(slotStart: Date): boolean {
     return rangeOverlapsOccupied(slotStart, 30);
   }
 
-  function canStartLessonAt(slotStart: Date): boolean {
+  function canStartLessonAt(slotStart: Date, selection: Set<string> = selected): boolean {
     if (slotStart.getTime() < Date.now()) return false;
     if (!isWithinTeachingHours(slotStart, duration)) return false;
 
     // A 60-minute lesson must have BOTH 30-minute cells free: the clicked cell
-    // and the next cell. This prevents taking a half-free / half-busy hour.
+    // and the next cell. The full-hour overlap check catches partial busy ranges too.
     if (duration === 60) {
       const secondHalf = new Date(slotStart.getTime() + 30 * 60_000);
-      return !isThirtyMinuteCellOccupied(slotStart) && !isThirtyMinuteCellOccupied(secondHalf) && !selectedOverlapsRange(slotStart, 60);
+      return !isThirtyMinuteCellOccupied(slotStart)
+        && !isThirtyMinuteCellOccupied(secondHalf)
+        && !rangeOverlapsOccupied(slotStart, 60)
+        && !selectedOverlapsRange(slotStart, 60, selection);
     }
 
-    return !isBusy(slotStart, duration);
+    return !isBusy(slotStart, duration, selection);
   }
 
   // Reschedule mode → derive duration from existing lesson; only 1 selection allowed
@@ -195,6 +198,18 @@ export default function Book() {
   const duration = isRescheduling ? rescheduleLesson!.duration_minutes : 60;
   const canBook = isRescheduling ? true : credits >= 1;
   const maxSlots = isRescheduling ? 1 : credits;
+
+  useEffect(() => {
+    if (loading || selected.size === 0) return;
+    setSelected((prev) => {
+      const next = new Set<string>();
+      for (const iso of prev) {
+        const slot = new Date(iso);
+        if (canStartLessonAt(slot, prev)) next.add(iso);
+      }
+      return next.size === prev.size ? prev : next;
+    });
+  }, [loading, occupied, duration]);
 
   // For 60-min lessons, a cell is a "continuation" if a selection starts 30 min before it.
   function isContinuationOf(slot: Date): boolean {
