@@ -52,9 +52,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { slots, lessonType } = (await req.json()) as { slots?: string[]; lessonType?: LessonType };
+    const { slots, lessonType, durationMinutes } = (await req.json()) as { slots?: string[]; lessonType?: LessonType; durationMinutes?: number };
     const type: LessonType = lessonType === "trial" ? "trial" : "regular";
-    const duration = type === "trial" ? 30 : 60;
+    const duration = type === "trial" ? 30 : durationMinutes === 30 ? 30 : 60;
 
     if (!Array.isArray(slots) || slots.length === 0) return json({ error: "No slots selected" });
     if (type === "trial" && slots.length !== 1) return json({ error: "Trials must use one slot" });
@@ -74,8 +74,8 @@ Deno.serve(async (req) => {
 
     if (hasCalendarConflict) {
       return json({
-        error: "Slot no longer available",
-        description: "Yves is busy during part of that lesson. Please pick a fully available 60-minute slot.",
+        error: "That time is no longer available — please pick another slot.",
+        description: `Yves is busy during part of that ${duration}-minute lesson. Please pick another slot.`,
         code: "CALENDAR_BUSY",
       });
     }
@@ -98,8 +98,8 @@ Deno.serve(async (req) => {
       return json({ lessonIds: [data] });
     }
 
-    const { data, error } = await supabase.rpc("book_lessons", { _slots: slots });
-    if (error) return json({ error: error.message, code: error.code });
+    const { data, error } = await supabase.rpc("book_lessons", { _slots: slots, _duration_minutes: duration });
+    if (error) return json({ error: "That time is no longer available — please pick another slot.", description: error.message, code: error.code });
     return json({ lessonIds: data ?? [] });
   } catch (error) {
     console.error("book-with-availability error:", error);
