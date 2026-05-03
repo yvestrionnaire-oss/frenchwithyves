@@ -316,6 +316,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_lesson_time_available: {
+        Args: {
+          _at: string
+          _duration_minutes?: number
+          _exclude_lesson?: string
+        }
+        Returns: boolean
+      }
       is_valid_slot: {
         Args: { _at: string; _duration_minutes?: number }
         Returns: boolean
