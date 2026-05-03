@@ -43,6 +43,7 @@ export type Database = {
           id: string
           lesson_type: string
           meet_link: string | null
+          occupied_range: unknown
           rescheduled_from: string | null
           scheduled_at: string
           status: Database["public"]["Enums"]["lesson_status"]
@@ -55,6 +56,7 @@ export type Database = {
           id?: string
           lesson_type?: string
           meet_link?: string | null
+          occupied_range: unknown
           rescheduled_from?: string | null
           scheduled_at: string
           status?: Database["public"]["Enums"]["lesson_status"]
@@ -67,6 +69,7 @@ export type Database = {
           id?: string
           lesson_type?: string
           meet_link?: string | null
+          occupied_range?: unknown
           rescheduled_from?: string | null
           scheduled_at?: string
           status?: Database["public"]["Enums"]["lesson_status"]
