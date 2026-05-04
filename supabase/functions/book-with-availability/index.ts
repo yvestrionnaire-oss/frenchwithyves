@@ -68,6 +68,7 @@ Deno.serve(async (req) => {
     const from = new Date(Math.min(...lessonRanges.map((r) => r.start))).toISOString();
     const to = new Date(Math.max(...lessonRanges.map((r) => r.end))).toISOString();
     const busy = await getCalendarBusy(from, to);
+    console.log("getCalendarBusy returned", busy.length, "ranges");
     const hasCalendarConflict = lessonRanges.some((lesson) =>
       busy.some((range) => overlaps(lesson.start, lesson.end, new Date(range.start).getTime(), new Date(range.end).getTime())),
     );
