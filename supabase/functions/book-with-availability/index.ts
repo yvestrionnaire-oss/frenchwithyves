@@ -21,31 +21,72 @@ function overlaps(aStart: number, aEnd: number, bStart: number, bEnd: number) {
   return aStart < bEnd && bStart < aEnd;
 }
 
-async function getCalendarBusy(from: string, to: string): Promise<BusyRange[]> {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  const GOOGLE_CALENDAR_API_KEY = Deno.env.get("GOOGLE_CALENDAR_API_KEY");
-  if (!LOVABLE_API_KEY || !GOOGLE_CALENDAR_API_KEY) return [];
-
-  const resp = await fetch(`${GATEWAY_URL}/freeBusy`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      "X-Connection-Api-Key": GOOGLE_CALENDAR_API_KEY,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      timeMin: from,
-      timeMax: to,
-      items: [{ id: "primary" }],
-    }),
-  });
-
-  const data = await resp.json();
-  if (!resp.ok) {
-    console.error("freeBusy failed before booking:", data);
-    throw new Error("Unable to verify calendar availability");
+class CalendarCheckUnavailable extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "CalendarCheckUnavailable";
   }
-  return data?.calendars?.primary?.busy ?? [];
+}
+
+// Single source of truth: invoke the get-busy-times edge function so the
+// availability check the booker performs is byte-for-byte the same one the
+// frontend uses to grey out slots. Hard-fails on any error.
+async function getCalendarBusy(from: string, to: string): Promise<BusyRange[]> {
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+  const SERVICE_ROLE_KEY =
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SERVICE_ROLE_KEY");
+  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+    throw new CalendarCheckUnavailable("Server misconfigured: missing service role for calendar check");
+  }
+
+  let resp: Response;
+  try {
+    resp = await fetch(`${SUPABASE_URL}/functions/v1/get-busy-times`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+        apikey: SERVICE_ROLE_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ from, to }),
+    });
+  } catch (e) {
+    console.error("get-busy-times invocation failed (network):", e);
+    throw new CalendarCheckUnavailable("Calendar check unreachable");
+  }
+
+  let data: unknown;
+  try {
+    data = await resp.json();
+  } catch (e) {
+    console.error("get-busy-times returned non-JSON:", resp.status, e);
+    throw new CalendarCheckUnavailable("Calendar check returned invalid response");
+  }
+
+  if (!resp.ok) {
+    console.error("get-busy-times non-2xx:", resp.status, data);
+    throw new CalendarCheckUnavailable("Calendar check failed");
+  }
+
+  const busy = (data as { busy?: unknown })?.busy;
+  if (!Array.isArray(busy)) {
+    console.error("get-busy-times unexpected shape:", data);
+    throw new CalendarCheckUnavailable("Calendar check returned unexpected shape");
+  }
+
+  for (const r of busy) {
+    if (
+      !r ||
+      typeof (r as BusyRange).start !== "string" ||
+      typeof (r as BusyRange).end !== "string"
+    ) {
+      console.error("get-busy-times bad range entry:", r);
+      throw new CalendarCheckUnavailable("Calendar check returned invalid range");
+    }
+  }
+
+  console.log("getCalendarBusy via get-busy-times returned", busy.length, "ranges");
+  return busy as BusyRange[];
 }
 
 Deno.serve(async (req) => {
@@ -104,6 +145,12 @@ Deno.serve(async (req) => {
     return json({ lessonIds: data ?? [] });
   } catch (error) {
     console.error("book-with-availability error:", error);
+    if (error instanceof CalendarCheckUnavailable) {
+      return json(
+        { error: "Calendar check unavailable, please try again.", code: "CALENDAR_CHECK_UNAVAILABLE" },
+        503,
+      );
+    }
     return json({ error: error instanceof Error ? error.message : "Booking failed" }, 500);
   }
 });
