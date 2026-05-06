@@ -145,6 +145,12 @@ Deno.serve(async (req) => {
     return json({ lessonIds: data ?? [] });
   } catch (error) {
     console.error("book-with-availability error:", error);
+    if (error instanceof CalendarCheckUnavailable) {
+      return json(
+        { error: "Calendar check unavailable, please try again.", code: "CALENDAR_CHECK_UNAVAILABLE" },
+        503,
+      );
+    }
     return json({ error: error instanceof Error ? error.message : "Booking failed" }, 500);
   }
 });
