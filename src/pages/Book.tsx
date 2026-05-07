@@ -471,11 +471,20 @@ export default function Book() {
                           onClick={() => !isContinuation && toggle(slot)}
                           disabled={cellDisabled}
                           aria-label={`${slot.toLocaleString()}`}
+                          title={
+                            inHours && !cellOccupied && fullLessonBlocked && !isPast
+                              ? "Free, but not enough room for a 60-minute lesson starting here"
+                              : undefined
+                          }
                           className={cn(
                             "border-r last:border-r-0 h-7 text-[10px] transition-colors",
                             !inHours && "bg-amber-100/60 dark:bg-amber-950/30",
                             inHours && !cellDisabled && "hover:bg-primary/10",
-                            inHours && (cellOccupied || fullLessonBlocked) && "bg-destructive/10",
+                            // Red ONLY when the cell is truly occupied (existing lesson or Google Calendar busy).
+                            inHours && cellOccupied && "bg-destructive/10",
+                            // Free, but a 60-min lesson can't start here (e.g. next 30 min is busy):
+                            // dim it instead of marking it "busy" so the user isn't misled.
+                            inHours && !cellOccupied && fullLessonBlocked && "bg-muted/30",
                             inHours && isPast && !isSelected && !isContinuation && "bg-muted/40",
                             (isSelected || isContinuation) && "bg-primary text-primary-foreground hover:bg-primary",
                           )}
