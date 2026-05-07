@@ -1,11 +1,22 @@
+// supabase/functions/book-with-availability/index.ts
+//
+// Books one or more lessons after verifying the time isn't already taken.
+// Two layers of "is the time taken?":
+//   1) Google Calendar — fetched via the get-busy-times edge function so the
+//      booking gate uses the SAME data source that paints the calendar UI.
+//      Any failure of that function (HTTP error, "unavailable" flag, missing
+//      env, network blip) refuses the booking. Never silently allow.
+//   2) Other lessons in the public.lessons table — checked inside the
+//      `book_lessons` SECURITY DEFINER RPC and additionally enforced by the
+//      `lessons_no_scheduled_overlap` exclusion constraint, so it's impossible
+//      for two students to win the same slot in a race.
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_calendar/calendar/v3";
 
 type LessonType = "trial" | "regular";
 type BusyRange = { start: string; end: string };
@@ -28,15 +39,22 @@ class CalendarCheckUnavailable extends Error {
   }
 }
 
-// Single source of truth: invoke the get-busy-times edge function so the
-// availability check the booker performs is byte-for-byte the same one the
-// frontend uses to grey out slots. Hard-fails on any error.
+/**
+ * Single source of truth: invoke the get-busy-times edge function so the
+ * availability check the booker performs is byte-for-byte the same one the
+ * frontend uses to grey out slots. Hard-fails on any error: missing config,
+ * non-2xx response, an `unavailable: true` flag in the body, malformed
+ * shape, or network issue.
+ */
 async function getCalendarBusy(from: string, to: string): Promise<BusyRange[]> {
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
   const SERVICE_ROLE_KEY =
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SERVICE_ROLE_KEY");
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ??
+    Deno.env.get("SERVICE_ROLE_KEY");
   if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
-    throw new CalendarCheckUnavailable("Server misconfigured: missing service role for calendar check");
+    throw new CalendarCheckUnavailable(
+      "Server misconfigured: missing service role for calendar check",
+    );
   }
 
   let resp: Response;
@@ -63,15 +81,24 @@ async function getCalendarBusy(from: string, to: string): Promise<BusyRange[]> {
     throw new CalendarCheckUnavailable("Calendar check returned invalid response");
   }
 
+  // Refuse the booking if the calendar service reports it is unavailable,
+  // whether by HTTP status OR by an explicit `unavailable: true` flag.
+  // Both are valid signals of "we did not actually verify availability".
   if (!resp.ok) {
     console.error("get-busy-times non-2xx:", resp.status, data);
     throw new CalendarCheckUnavailable("Calendar check failed");
+  }
+  if ((data as { unavailable?: boolean })?.unavailable === true) {
+    console.error("get-busy-times reported unavailable:", data);
+    throw new CalendarCheckUnavailable("Calendar check unavailable");
   }
 
   const busy = (data as { busy?: unknown })?.busy;
   if (!Array.isArray(busy)) {
     console.error("get-busy-times unexpected shape:", data);
-    throw new CalendarCheckUnavailable("Calendar check returned unexpected shape");
+    throw new CalendarCheckUnavailable(
+      "Calendar check returned unexpected shape",
+    );
   }
 
   for (const r of busy) {
@@ -81,24 +108,41 @@ async function getCalendarBusy(from: string, to: string): Promise<BusyRange[]> {
       typeof (r as BusyRange).end !== "string"
     ) {
       console.error("get-busy-times bad range entry:", r);
-      throw new CalendarCheckUnavailable("Calendar check returned invalid range");
+      throw new CalendarCheckUnavailable(
+        "Calendar check returned invalid range",
+      );
     }
   }
 
-  console.log("getCalendarBusy via get-busy-times returned", busy.length, "ranges");
+  console.log(
+    "getCalendarBusy via get-busy-times returned",
+    busy.length,
+    "ranges",
+  );
   return busy as BusyRange[];
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
 
   try {
-    const { slots, lessonType, durationMinutes } = (await req.json()) as { slots?: string[]; lessonType?: LessonType; durationMinutes?: number };
+    const { slots, lessonType, durationMinutes } = (await req.json()) as {
+      slots?: string[];
+      lessonType?: LessonType;
+      durationMinutes?: number;
+    };
     const type: LessonType = lessonType === "trial" ? "trial" : "regular";
-    const duration = type === "trial" ? 30 : durationMinutes === 30 ? 30 : 60;
+    const duration =
+      type === "trial" ? 30 : durationMinutes === 30 ? 30 : 60;
 
-    if (!Array.isArray(slots) || slots.length === 0) return json({ error: "No slots selected" });
-    if (type === "trial" && slots.length !== 1) return json({ error: "Trials must use one slot" });
+    if (!Array.isArray(slots) || slots.length === 0) {
+      return json({ error: "No slots selected" });
+    }
+    if (type === "trial" && slots.length !== 1) {
+      return json({ error: "Trials must use one slot" });
+    }
 
     const lessonRanges = slots.map((slot) => {
       const start = new Date(slot).getTime();
@@ -106,12 +150,23 @@ Deno.serve(async (req) => {
       return { slot, start, end: start + duration * 60_000 };
     });
 
-    const from = new Date(Math.min(...lessonRanges.map((r) => r.start))).toISOString();
-    const to = new Date(Math.max(...lessonRanges.map((r) => r.end))).toISOString();
+    const from = new Date(
+      Math.min(...lessonRanges.map((r) => r.start)),
+    ).toISOString();
+    const to = new Date(
+      Math.max(...lessonRanges.map((r) => r.end)),
+    ).toISOString();
     const busy = await getCalendarBusy(from, to);
     console.log("getCalendarBusy returned", busy.length, "ranges");
     const hasCalendarConflict = lessonRanges.some((lesson) =>
-      busy.some((range) => overlaps(lesson.start, lesson.end, new Date(range.start).getTime(), new Date(range.end).getTime())),
+      busy.some((range) =>
+        overlaps(
+          lesson.start,
+          lesson.end,
+          new Date(range.start).getTime(),
+          new Date(range.end).getTime(),
+        ),
+      ),
     );
 
     if (hasCalendarConflict) {
@@ -123,9 +178,13 @@ Deno.serve(async (req) => {
     }
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
+    const SUPABASE_ANON_KEY =
+      Deno.env.get("SUPABASE_ANON_KEY") ??
+      Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
     const authHeader = req.headers.get("Authorization") ?? "";
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !authHeader) return json({ error: "Not authenticated" });
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !authHeader) {
+      return json({ error: "Not authenticated" });
+    }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
@@ -140,17 +199,33 @@ Deno.serve(async (req) => {
       return json({ lessonIds: [data] });
     }
 
-    const { data, error } = await supabase.rpc("book_lessons", { _slots: slots, _duration_minutes: duration });
-    if (error) return json({ error: "That time is no longer available — please pick another slot.", description: error.message, code: error.code });
+    const { data, error } = await supabase.rpc("book_lessons", {
+      _slots: slots,
+      _duration_minutes: duration,
+    });
+    if (error) {
+      return json({
+        error: "That time is no longer available — please pick another slot.",
+        description: error.message,
+        code: error.code,
+      });
+    }
     return json({ lessonIds: data ?? [] });
   } catch (error) {
     console.error("book-with-availability error:", error);
     if (error instanceof CalendarCheckUnavailable) {
       return json(
-        { error: "Calendar check unavailable, please try again.", code: "CALENDAR_CHECK_UNAVAILABLE" },
+        {
+          error:
+            "Couldn't verify Yves's calendar right now — please try again in a minute.",
+          code: "CALENDAR_CHECK_UNAVAILABLE",
+        },
         503,
       );
     }
-    return json({ error: error instanceof Error ? error.message : "Booking failed" }, 500);
+    return json(
+      { error: error instanceof Error ? error.message : "Booking failed" },
+      500,
+    );
   }
 });
