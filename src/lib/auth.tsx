@@ -46,20 +46,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function resolveRole(user: User) {
-    // If admin email and not yet promoted, promote
-    if (user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-      const { data: existingRoles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id);
-      const hasTeacher = existingRoles?.some((r) => r.role === "teacher");
-      if (!hasTeacher) {
-        await supabase.rpc("bootstrap_admin", { _admin_email: ADMIN_EMAIL });
-      }
-      setRole("teacher");
-      return;
-    }
-
     const { data } = await supabase
       .from("user_roles")
       .select("role")
