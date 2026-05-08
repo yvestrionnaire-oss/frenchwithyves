@@ -214,10 +214,8 @@ export default function Book() {
   }
 
   // Reschedule mode → derive duration from existing lesson; only 1 selection allowed
-  const rescheduleLesson = useMemo(
-    () => (rescheduleId ? lessons.find((l) => l.id === rescheduleId) : null),
-    [rescheduleId, lessons],
-  );
+  // rescheduleLesson is loaded independently of the weekly query (see useEffect below)
+  // so it survives week navigation.
   const isRescheduling = !!rescheduleLesson;
   const duration = isRescheduling ? rescheduleLesson!.duration_minutes : 60;
   const canBook = isRescheduling ? true : credits >= 1;
