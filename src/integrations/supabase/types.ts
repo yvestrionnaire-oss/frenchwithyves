@@ -309,7 +309,6 @@ export type Database = {
           start_at: string
         }[]
       }
-      bootstrap_admin: { Args: { _admin_email: string }; Returns: undefined }
       cancel_lesson: { Args: { _lesson_id: string }; Returns: undefined }
       cancel_request: { Args: { _request_id: string }; Returns: undefined }
       confirm_paid: { Args: { _request_id: string }; Returns: undefined }
