@@ -152,8 +152,9 @@ export default function Book() {
   // When rescheduling, exclude the lesson being moved.
   const occupied = useMemo(() => {
     const ranges: [number, number][] = [];
+    const excludeId = rescheduleLesson?.id ?? rescheduleId;
     for (const l of lessons) {
-      if (rescheduleId && l.id === rescheduleId) continue;
+      if (excludeId && l.id === excludeId) continue;
       const s = new Date(l.scheduled_at).getTime();
       ranges.push([s, s + l.duration_minutes * 60_000]);
     }
@@ -161,7 +162,7 @@ export default function Book() {
       ranges.push([new Date(b.start).getTime(), new Date(b.end).getTime()]);
     }
     return ranges;
-  }, [lessons, busy, rescheduleId]);
+  }, [lessons, busy, rescheduleId, rescheduleLesson]);
 
   // Data-model guard for the 30-minute grid: every lesson/busy range marks each
   // 30-minute cell it touches, not just the cell where it starts.
