@@ -16,6 +16,7 @@ const PET_START_MIN = 5 * 60 + 30; // 330
 const PET_END_MIN = 19 * 60;       // 1140
 const SLOT_MINUTES = 30;
 const SLOT_MS = SLOT_MINUTES * 60_000;
+const MAX_WEEKS_AHEAD = 52;
 
 type LessonRow = {
   id: string;
@@ -408,13 +409,13 @@ export default function Book() {
           </Button>
           <div className="text-sm font-medium">
             Week of {weekStart.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}
-            <span className="ml-2 text-muted-foreground">({weekOffset + 1} / 12)</span>
+            <span className="ml-2 text-muted-foreground">({weekOffset + 1} / {MAX_WEEKS_AHEAD})</span>
           </div>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setWeekOffset((w) => Math.min(11, w + 1))}
-            disabled={weekOffset === 11}
+            onClick={() => setWeekOffset((w) => Math.min(MAX_WEEKS_AHEAD - 1, w + 1))}
+            disabled={weekOffset === MAX_WEEKS_AHEAD - 1}
           >
             Next <ChevronRight className="h-4 w-4" />
           </Button>
