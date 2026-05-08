@@ -83,6 +83,23 @@ export default function Book() {
     void load();
   }, [user, weekStart.toISOString()]);
 
+  useEffect(() => {
+    if (!rescheduleId) { setRescheduleLesson(null); return; }
+    void (async () => {
+      const { data, error } = await supabase
+        .from("lessons")
+        .select("id, scheduled_at, duration_minutes, status, lesson_type, student_id")
+        .eq("id", rescheduleId)
+        .maybeSingle();
+      if (error || !data) {
+        toast({ title: "Lesson not found", description: "Couldn't load the lesson to reschedule.", variant: "destructive" });
+        setRescheduleLesson(null);
+        return;
+      }
+      setRescheduleLesson(data as LessonRow);
+    })();
+  }, [rescheduleId]);
+
   async function load() {
     setLoading(true);
     const [lessonsRes, balRes, busyRes, bookedRes] = await Promise.all([
