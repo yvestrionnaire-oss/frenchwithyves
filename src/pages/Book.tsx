@@ -67,6 +67,7 @@ export default function Book() {
   const [params] = useSearchParams();
   const rescheduleId = params.get("reschedule");
   const [lessons, setLessons] = useState<LessonRow[]>([]);
+  const [rescheduleLesson, setRescheduleLesson] = useState<LessonRow | null>(null);
   const [busy, setBusy] = useState<BusyRange[]>([]);
   const [credits, setCredits] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -81,6 +82,23 @@ export default function Book() {
     if (!user) return;
     void load();
   }, [user, weekStart.toISOString()]);
+
+  useEffect(() => {
+    if (!rescheduleId) { setRescheduleLesson(null); return; }
+    void (async () => {
+      const { data, error } = await supabase
+        .from("lessons")
+        .select("id, scheduled_at, duration_minutes, status, lesson_type, student_id")
+        .eq("id", rescheduleId)
+        .maybeSingle();
+      if (error || !data) {
+        toast({ title: "Lesson not found", description: "Couldn't load the lesson to reschedule.", variant: "destructive" });
+        setRescheduleLesson(null);
+        return;
+      }
+      setRescheduleLesson(data as LessonRow);
+    })();
+  }, [rescheduleId]);
 
   async function load() {
     setLoading(true);
@@ -134,8 +152,9 @@ export default function Book() {
   // When rescheduling, exclude the lesson being moved.
   const occupied = useMemo(() => {
     const ranges: [number, number][] = [];
+    const excludeId = rescheduleLesson?.id ?? rescheduleId;
     for (const l of lessons) {
-      if (rescheduleId && l.id === rescheduleId) continue;
+      if (excludeId && l.id === excludeId) continue;
       const s = new Date(l.scheduled_at).getTime();
       ranges.push([s, s + l.duration_minutes * 60_000]);
     }
@@ -143,7 +162,7 @@ export default function Book() {
       ranges.push([new Date(b.start).getTime(), new Date(b.end).getTime()]);
     }
     return ranges;
-  }, [lessons, busy, rescheduleId]);
+  }, [lessons, busy, rescheduleId, rescheduleLesson]);
 
   // Data-model guard for the 30-minute grid: every lesson/busy range marks each
   // 30-minute cell it touches, not just the cell where it starts.
@@ -213,10 +232,8 @@ export default function Book() {
   }
 
   // Reschedule mode → derive duration from existing lesson; only 1 selection allowed
-  const rescheduleLesson = useMemo(
-    () => (rescheduleId ? lessons.find((l) => l.id === rescheduleId) : null),
-    [rescheduleId, lessons],
-  );
+  // rescheduleLesson is loaded independently of the weekly query (see useEffect below)
+  // so it survives week navigation.
   const isRescheduling = !!rescheduleLesson;
   const duration = isRescheduling ? rescheduleLesson!.duration_minutes : 60;
   const canBook = isRescheduling ? true : credits >= 1;
