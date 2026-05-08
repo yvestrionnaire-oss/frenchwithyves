@@ -67,6 +67,7 @@ export default function Book() {
   const [params] = useSearchParams();
   const rescheduleId = params.get("reschedule");
   const [lessons, setLessons] = useState<LessonRow[]>([]);
+  const [rescheduleLesson, setRescheduleLesson] = useState<LessonRow | null>(null);
   const [busy, setBusy] = useState<BusyRange[]>([]);
   const [credits, setCredits] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
