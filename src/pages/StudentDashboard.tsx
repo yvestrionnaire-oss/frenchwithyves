@@ -325,9 +325,6 @@ export default function StudentDashboard() {
         {/* Lessons (left) + Requests history (right) */}
         <section className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Upcoming lessons</h2>
-            </div>
             <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-xl font-semibold">Lessons</h2>
               <Select value={lessonsFilter} onValueChange={(v) => setLessonsFilter(v as typeof lessonsFilter)}>
