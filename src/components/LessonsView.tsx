@@ -25,6 +25,7 @@ type Props = {
   onCancel?: (id: string) => void;
   rescheduleLabel?: string; // e.g. "Reschedule" or "Request reschedule"
   emptyText?: string;
+  headerExtra?: React.ReactNode; // rendered to the left of the List/Calendar toggle
 };
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
