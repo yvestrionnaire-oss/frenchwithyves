@@ -74,11 +74,11 @@ export default function TeacherDashboard() {
   const [busy, setBusy] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [rescheduleLessonId, setRescheduleLessonId] = useState<string | null>(null);
-  type LessonsFilter = "upcoming" | "unscheduled" | "completed";
+  type LessonsFilter = "upcoming" | "completed";
   const [lessonsFilter, setLessonsFilter] = useState<LessonsFilter>(() => {
     if (typeof window === "undefined") return "upcoming";
     const v = window.localStorage.getItem("fwy.teacherLessonsFilter");
-    return v === "upcoming" || v === "unscheduled" || v === "completed" ? v : "upcoming";
+    return v === "upcoming" || v === "completed" ? v : "upcoming";
   });
   useEffect(() => {
     window.localStorage.setItem("fwy.teacherLessonsFilter", lessonsFilter);
