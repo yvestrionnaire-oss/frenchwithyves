@@ -325,51 +325,13 @@ export default function StudentDashboard() {
         {/* Lessons (left) + Requests history (right) */}
         <section className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="text-xl font-semibold">Lessons</h2>
-              <Select value={lessonsFilter} onValueChange={(v) => setLessonsFilter(v as typeof lessonsFilter)}>
-                <SelectTrigger className="w-full sm:w-[200px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="upcoming">Upcoming</SelectItem>
-                  <SelectItem value="unscheduled">To be scheduled</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <h2 className="mb-3 text-xl font-semibold">Lessons</h2>
             {loading ? (
               <Card>
                 <CardContent className="flex items-center justify-center py-10 text-muted-foreground">
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
                 </CardContent>
               </Card>
-            ) : lessonsFilter === "unscheduled" ? (
-              credits > 0 ? (
-                <Card>
-                  <CardContent className="flex flex-col gap-3 p-6 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <div className="text-base font-semibold">
-                        You have {credits} credit{credits === 1 ? "" : "s"} not yet booked
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Pick a time on your calendar to schedule {credits === 1 ? "it" : "them"}.
-                      </p>
-                    </div>
-                    <Button asChild>
-                      <Link to="/book">
-                        <CalendarDays className="h-4 w-4" /> Book a lesson
-                      </Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card>
-                  <CardContent className="py-6 text-center text-sm text-muted-foreground">
-                    No credits to schedule. Request a package below to get more lessons.
-                  </CardContent>
-                </Card>
-              )
             ) : (
               <LessonsView
                 lessons={filteredLessonItems}
@@ -380,6 +342,17 @@ export default function StudentDashboard() {
                   lessonsFilter === "upcoming"
                     ? "No upcoming lessons. Pick a slot from your calendar."
                     : "No completed lessons yet."
+                }
+                headerExtra={
+                  <Select value={lessonsFilter} onValueChange={(v) => setLessonsFilter(v as typeof lessonsFilter)}>
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="upcoming">Upcoming</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                    </SelectContent>
+                  </Select>
                 }
               />
             )}
