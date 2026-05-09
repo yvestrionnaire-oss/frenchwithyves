@@ -65,6 +65,15 @@ export default function StudentDashboard() {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [requesting, setRequesting] = useState<string | null>(null);
+  type LessonsFilter = "upcoming" | "unscheduled" | "completed";
+  const [lessonsFilter, setLessonsFilter] = useState<LessonsFilter>(() => {
+    if (typeof window === "undefined") return "upcoming";
+    const v = window.localStorage.getItem("fwy.studentLessonsFilter");
+    return v === "upcoming" || v === "unscheduled" || v === "completed" ? v : "upcoming";
+  });
+  useEffect(() => {
+    window.localStorage.setItem("fwy.studentLessonsFilter", lessonsFilter);
+  }, [lessonsFilter]);
 
   useEffect(() => {
     if (!user) return;
