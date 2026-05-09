@@ -74,11 +74,11 @@ export default function TeacherDashboard() {
   const [busy, setBusy] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [rescheduleLessonId, setRescheduleLessonId] = useState<string | null>(null);
-  type LessonsFilter = "upcoming" | "unscheduled" | "completed";
+  type LessonsFilter = "upcoming" | "completed";
   const [lessonsFilter, setLessonsFilter] = useState<LessonsFilter>(() => {
     if (typeof window === "undefined") return "upcoming";
     const v = window.localStorage.getItem("fwy.teacherLessonsFilter");
-    return v === "upcoming" || v === "unscheduled" || v === "completed" ? v : "upcoming";
+    return v === "upcoming" || v === "completed" ? v : "upcoming";
   });
   useEffect(() => {
     window.localStorage.setItem("fwy.teacherLessonsFilter", lessonsFilter);
@@ -234,102 +234,62 @@ export default function TeacherDashboard() {
         {/* Upcoming lessons (left) + Recent activity (right) */}
         <section className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="text-xl font-semibold">Lessons</h2>
-              <Select value={lessonsFilter} onValueChange={(v) => setLessonsFilter(v as typeof lessonsFilter)}>
-                <SelectTrigger className="w-full sm:w-[200px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="upcoming">Upcoming</SelectItem>
-                  <SelectItem value="unscheduled">To be scheduled</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {lessonsFilter === "unscheduled" ? (
-              (() => {
-                const withCredits = students
-                  .filter((s) => s.credits > 0)
-                  .sort((a, b) => b.credits - a.credits || (a.full_name ?? a.email ?? "").localeCompare(b.full_name ?? b.email ?? ""));
-                if (withCredits.length === 0) {
-                  return (
-                    <Card>
-                      <CardContent className="py-6 text-center text-sm text-muted-foreground">
-                        All students have booked all their credits.
-                      </CardContent>
-                    </Card>
-                  );
-                }
-                return (
-                  <Card>
-                    <CardContent className="divide-y p-0">
-                      {withCredits.map((s) => (
-                        <div key={s.id} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
-                          <div className="min-w-0">
-                            <div className="font-medium truncate">{s.full_name ?? "—"}</div>
-                            <button
-                              onClick={() => copyEmail(s.email)}
-                              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-                            >
-                              <Copy className="h-3 w-3" /> {s.email}
-                            </button>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <Badge variant="secondary">{s.credits} credit{s.credits === 1 ? "" : "s"} unbooked</Badge>
-                          </div>
-                        </div>
-                      ))}
-                    </CardContent>
-                  </Card>
-                );
-              })()
-            ) : (
-              (() => {
-                const now = Date.now();
-                const matches = lessons.filter((l) => {
-                  if (l.status === "cancelled") return false;
-                  const t = new Date(l.scheduled_at).getTime();
-                  if (lessonsFilter === "upcoming") return l.status === "scheduled" && t >= now;
-                  return l.status === "completed" || (l.status === "scheduled" && t < now);
-                });
-                matches.sort((a, b) => {
-                  const at = new Date(a.scheduled_at).getTime();
-                  const bt = new Date(b.scheduled_at).getTime();
-                  return lessonsFilter === "completed" ? bt - at : at - bt;
-                });
-                return (
-                  <LessonsView
-                    lessons={matches.map((l) => {
-                      const p = profileMap.get(l.student_id);
-                      const name = p?.full_name ?? p?.email ?? "Student";
-                      return {
-                        ...l,
-                        counterpartName: name,
-                        initials: initialsFromName(name),
-                        colorHue: hueFromString(p?.id ?? l.student_id),
-                      } as LessonItem;
-                    })}
-                    onReschedule={(id) => setRescheduleLessonId(id)}
-                    onCancel={async (id) => {
-                      const { error } = await supabase.rpc("cancel_lesson", { _lesson_id: id });
-                      if (error) {
-                        toast({ title: "Failed", description: error.message, variant: "destructive" });
-                        return;
-                      }
-                      toast({ title: "Lesson cancelled" });
-                      await loadAll();
-                    }}
-                    rescheduleLabel="Request reschedule"
-                    emptyText={
-                      lessonsFilter === "upcoming"
-                        ? "No upcoming lessons booked yet."
-                        : "No completed lessons yet."
+            <h2 className="mb-3 text-xl font-semibold">Lessons</h2>
+            {(() => {
+              const now = Date.now();
+              const matches = lessons.filter((l) => {
+                if (l.status === "cancelled") return false;
+                const t = new Date(l.scheduled_at).getTime();
+                if (lessonsFilter === "upcoming") return l.status === "scheduled" && t >= now;
+                return l.status === "completed" || (l.status === "scheduled" && t < now);
+              });
+              matches.sort((a, b) => {
+                const at = new Date(a.scheduled_at).getTime();
+                const bt = new Date(b.scheduled_at).getTime();
+                return lessonsFilter === "completed" ? bt - at : at - bt;
+              });
+              return (
+                <LessonsView
+                  lessons={matches.map((l) => {
+                    const p = profileMap.get(l.student_id);
+                    const name = p?.full_name ?? p?.email ?? "Student";
+                    return {
+                      ...l,
+                      counterpartName: name,
+                      initials: initialsFromName(name),
+                      colorHue: hueFromString(p?.id ?? l.student_id),
+                    } as LessonItem;
+                  })}
+                  onReschedule={(id) => setRescheduleLessonId(id)}
+                  onCancel={async (id) => {
+                    const { error } = await supabase.rpc("cancel_lesson", { _lesson_id: id });
+                    if (error) {
+                      toast({ title: "Failed", description: error.message, variant: "destructive" });
+                      return;
                     }
-                  />
-                );
-              })()
-            )}
+                    toast({ title: "Lesson cancelled" });
+                    await loadAll();
+                  }}
+                  rescheduleLabel="Request reschedule"
+                  emptyText={
+                    lessonsFilter === "upcoming"
+                      ? "No upcoming lessons booked yet."
+                      : "No completed lessons yet."
+                  }
+                  headerExtra={
+                    <Select value={lessonsFilter} onValueChange={(v) => setLessonsFilter(v as typeof lessonsFilter)}>
+                      <SelectTrigger className="w-full sm:w-[180px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="upcoming">Upcoming</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  }
+                />
+              );
+            })()}
           </div>
 
           <aside className="lg:col-span-1">
