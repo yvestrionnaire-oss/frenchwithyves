@@ -36,13 +36,14 @@ function startOfMonth(d: Date) {
   return o;
 }
 
-export function LessonsView({ lessons, onReschedule, onCancel, rescheduleLabel = "Reschedule", emptyText = "No lessons yet." }: Props) {
+export function LessonsView({ lessons, onReschedule, onCancel, rescheduleLabel = "Reschedule", emptyText = "No lessons yet.", headerExtra }: Props) {
   const [view, setView] = useState<"list" | "calendar">("list");
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-end">
-        <div className="inline-flex rounded-lg border bg-muted/30 p-1">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">{headerExtra}</div>
+        <div className="inline-flex self-end rounded-lg border bg-muted/30 p-1 sm:self-auto">
           <button
             type="button"
             onClick={() => setView("list")}
