@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -64,6 +65,15 @@ export default function StudentDashboard() {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [requesting, setRequesting] = useState<string | null>(null);
+  type LessonsFilter = "upcoming" | "unscheduled" | "completed";
+  const [lessonsFilter, setLessonsFilter] = useState<LessonsFilter>(() => {
+    if (typeof window === "undefined") return "upcoming";
+    const v = window.localStorage.getItem("fwy.studentLessonsFilter");
+    return v === "upcoming" || v === "unscheduled" || v === "completed" ? v : "upcoming";
+  });
+  useEffect(() => {
+    window.localStorage.setItem("fwy.studentLessonsFilter", lessonsFilter);
+  }, [lessonsFilter]);
 
   useEffect(() => {
     if (!user) return;
@@ -174,17 +184,29 @@ export default function StudentDashboard() {
   // Free trial removed — never show free packages in the request list.
   const visiblePackages = packages.filter((p) => !p.is_free);
 
-  // Build LessonItem[] for the unified view
-  const lessonItems: LessonItem[] = useMemo(() => {
-    return lessons
-      .filter((l) => l.status !== "cancelled")
-      .map((l) => ({
-        ...l,
-        counterpartName: "Yves",
-        initials: "Y",
-        colorHue: hueFromString("Yves"),
-      }));
-  }, [lessons]);
+  // Build LessonItem[] for the unified view, filtered by the dropdown
+  const filteredLessonItems: LessonItem[] = useMemo(() => {
+    const now = Date.now();
+    const matches = lessons.filter((l) => {
+      if (l.status === "cancelled") return false;
+      const t = new Date(l.scheduled_at).getTime();
+      if (lessonsFilter === "upcoming") return l.status === "scheduled" && t >= now;
+      if (lessonsFilter === "completed")
+        return l.status === "completed" || (l.status === "scheduled" && t < now);
+      return false;
+    });
+    matches.sort((a, b) => {
+      const at = new Date(a.scheduled_at).getTime();
+      const bt = new Date(b.scheduled_at).getTime();
+      return lessonsFilter === "completed" ? bt - at : at - bt;
+    });
+    return matches.map((l) => ({
+      ...l,
+      counterpartName: "Yves",
+      initials: "Y",
+      colorHue: hueFromString("Yves"),
+    }));
+  }, [lessons, lessonsFilter]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -303,8 +325,18 @@ export default function StudentDashboard() {
         {/* Lessons (left) + Requests history (right) */}
         <section className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Upcoming lessons</h2>
+            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-xl font-semibold">Lessons</h2>
+              <Select value={lessonsFilter} onValueChange={(v) => setLessonsFilter(v as typeof lessonsFilter)}>
+                <SelectTrigger className="w-full sm:w-[200px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="upcoming">Upcoming</SelectItem>
+                  <SelectItem value="unscheduled">To be scheduled</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             {loading ? (
               <Card>
@@ -312,13 +344,43 @@ export default function StudentDashboard() {
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
                 </CardContent>
               </Card>
+            ) : lessonsFilter === "unscheduled" ? (
+              credits > 0 ? (
+                <Card>
+                  <CardContent className="flex flex-col gap-3 p-6 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <div className="text-base font-semibold">
+                        You have {credits} credit{credits === 1 ? "" : "s"} not yet booked
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Pick a time on your calendar to schedule {credits === 1 ? "it" : "them"}.
+                      </p>
+                    </div>
+                    <Button asChild>
+                      <Link to="/book">
+                        <CalendarDays className="h-4 w-4" /> Book a lesson
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent className="py-6 text-center text-sm text-muted-foreground">
+                    No credits to schedule. Request a package below to get more lessons.
+                  </CardContent>
+                </Card>
+              )
             ) : (
               <LessonsView
-                lessons={lessonItems}
+                lessons={filteredLessonItems}
                 onReschedule={(id) => { window.location.href = `/book?reschedule=${id}`; }}
                 onCancel={cancelLesson}
                 rescheduleLabel="Reschedule"
-                emptyText={credits > 0 ? "Book one from your calendar." : "No lessons yet."}
+                emptyText={
+                  lessonsFilter === "upcoming"
+                    ? "No upcoming lessons. Pick a slot from your calendar."
+                    : "No completed lessons yet."
+                }
               />
             )}
           </div>
