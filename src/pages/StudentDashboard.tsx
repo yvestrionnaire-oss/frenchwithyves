@@ -184,17 +184,29 @@ export default function StudentDashboard() {
   // Free trial removed — never show free packages in the request list.
   const visiblePackages = packages.filter((p) => !p.is_free);
 
-  // Build LessonItem[] for the unified view
-  const lessonItems: LessonItem[] = useMemo(() => {
-    return lessons
-      .filter((l) => l.status !== "cancelled")
-      .map((l) => ({
-        ...l,
-        counterpartName: "Yves",
-        initials: "Y",
-        colorHue: hueFromString("Yves"),
-      }));
-  }, [lessons]);
+  // Build LessonItem[] for the unified view, filtered by the dropdown
+  const filteredLessonItems: LessonItem[] = useMemo(() => {
+    const now = Date.now();
+    const matches = lessons.filter((l) => {
+      if (l.status === "cancelled") return false;
+      const t = new Date(l.scheduled_at).getTime();
+      if (lessonsFilter === "upcoming") return l.status === "scheduled" && t >= now;
+      if (lessonsFilter === "completed")
+        return l.status === "completed" || (l.status === "scheduled" && t < now);
+      return false;
+    });
+    matches.sort((a, b) => {
+      const at = new Date(a.scheduled_at).getTime();
+      const bt = new Date(b.scheduled_at).getTime();
+      return lessonsFilter === "completed" ? bt - at : at - bt;
+    });
+    return matches.map((l) => ({
+      ...l,
+      counterpartName: "Yves",
+      initials: "Y",
+      colorHue: hueFromString("Yves"),
+    }));
+  }, [lessons, lessonsFilter]);
 
   return (
     <div className="min-h-screen bg-background">
