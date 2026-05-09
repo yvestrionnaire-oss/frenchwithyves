@@ -296,12 +296,10 @@ export type Database = {
         Args: { _lesson_type?: string; _scheduled_at: string }
         Returns: string
       }
-      book_lessons:
-        | {
-            Args: { _duration_minutes?: number; _slots: string[] }
-            Returns: string[]
-          }
-        | { Args: { _slots: string[]; _student_id: string }; Returns: string[] }
+      book_lessons: {
+        Args: { _duration_minutes?: number; _slots: string[] }
+        Returns: string[]
+      }
       booked_ranges: {
         Args: { _from: string; _to: string }
         Returns: {
