@@ -272,7 +272,7 @@ export default function Book() {
             next.clear();
             next.add(key);
           } else {
-            toast({ title: "Limit reached", description: `You can book up to ${maxSlots} lesson${maxSlots === 1 ? "" : "s"} (1 per credit).` });
+            toast({ title: "Limit reached", description: `You can book up to ${maxSlots} lesson${maxSlots === 1 ? "" : "s"}.` });
             return prev;
           }
         } else next.add(key);
@@ -370,7 +370,7 @@ export default function Book() {
               <Badge variant="secondary">Rescheduling · {duration} min</Badge>
             ) : (
               <Badge variant="secondary">
-                {credits} credit{credits === 1 ? "" : "s"} · {credits} lesson{credits === 1 ? "" : "s"} to book
+                {credits} lesson{credits === 1 ? "" : "s"} to book
               </Badge>
             )}
           </div>
@@ -385,14 +385,14 @@ export default function Book() {
           <p className="mt-1 text-muted-foreground">
             {isRescheduling
               ? `Currently ${new Date(rescheduleLesson!.scheduled_at).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}. Pick a new slot below.`
-              : `Yves teaches between 5:30 AM and 7:00 PM Peru time. Pick up to ${credits} slot${credits === 1 ? "" : "s"} — 1 credit = 1 lesson.`}
+              : `Yves teaches between 5:30 AM and 7:00 PM Peru time. Pick up to ${credits} lesson slot${credits === 1 ? "" : "s"}.`}
           </p>
         </div>
 
         {!canBook && (
           <Card className="mb-6 border-destructive/50 p-4">
             <p className="text-sm text-destructive">
-              You don't have any credits. Request a package from your dashboard.
+              You don't have any lessons available. Request a package from your dashboard.
             </p>
           </Card>
         )}
@@ -542,7 +542,7 @@ export default function Book() {
                       : `${selected.size} lesson${selected.size === 1 ? "" : "s"} selected`}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {`${selected.size} × 60 min · ${selected.size} credit${selected.size === 1 ? "" : "s"}`}
+                    {`${selected.size} × 60 min · ${selected.size} lesson${selected.size === 1 ? "" : "s"}`}
                   </div>
                 </>
               )}

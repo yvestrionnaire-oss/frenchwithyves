@@ -108,8 +108,8 @@ export default function Landing() {
           <StepCard n="4" title="You pay" icon={<CreditCard className="h-5 w-5" />}>
             You complete the payment, and my bank notifies me as soon as it lands.
           </StepCard>
-          <StepCard n="5" title="I confirm your credits" icon={<Wallet className="h-5 w-5" />}>
-            I confirm payment in your dashboard — credits appear on your account immediately.
+          <StepCard n="5" title="I confirm your lessons" icon={<Wallet className="h-5 w-5" />}>
+            I confirm payment in your dashboard — your lessons appear on your account immediately.
           </StepCard>
           <StepCard n="6" title="Book your slots" icon={<CalendarDays className="h-5 w-5" />}>
             The calendar unlocks. Pick any open time — a <strong>Google Meet</strong> invite is sent for each lesson.

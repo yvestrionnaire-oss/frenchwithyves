@@ -243,21 +243,21 @@ export default function StudentDashboard() {
           <Card className="md:col-span-2 border-primary/30">
             <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <div className="text-sm text-muted-foreground">Available credits</div>
+                <div className="text-sm text-muted-foreground">Available lessons</div>
                 <div className="mt-1 flex items-baseline gap-2">
                   <span className="text-5xl font-semibold text-primary">{credits}</span>
                   <span className="text-sm font-medium text-muted-foreground">
-                    = {credits} lesson{credits === 1 ? "" : "s"} you can book
+                    {credits === 1 ? "lesson remaining" : "lessons remaining"}
                   </span>
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  💡 Each credit = one 60-minute lesson. Book them all at once, or one at a time.
+                  💡 Each lesson is 60 minutes. Book them all at once, or one at a time.
                 </p>
               </div>
               <Button asChild size="lg" disabled={credits < 1}>
                 <Link to={credits > 0 ? "/book" : "/book"}>
                   <CalendarDays className="h-4 w-4" />
-                  {credits > 0 ? `Book ${credits} lesson${credits === 1 ? "" : "s"}` : "No credits"}
+                  {credits > 0 ? `Book ${credits} lesson${credits === 1 ? "" : "s"}` : "No lessons"}
                 </Link>
               </Button>
             </CardContent>
@@ -404,7 +404,7 @@ export default function StudentDashboard() {
           <h2 className="mb-3 text-xl font-semibold">Request a package</h2>
           <p className="mb-4 text-sm text-muted-foreground">
             Pick a package — Yves will email you a payment link, and once payment is confirmed,
-            credits appear here so you can book your slots.
+            your lessons appear here so you can book your slots.
           </p>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {visiblePackages.map((pkg) => (
@@ -447,7 +447,7 @@ function RequestStatusLine({ status }: { status: Request["status"] }) {
     pending: { icon: <Clock className="h-4 w-4" />, label: "Awaiting Yves' approval", tone: "text-amber-700 dark:text-amber-400" },
     payment_link_sent: { icon: <MailQuestion className="h-4 w-4" />, label: "Payment link sent — check your email", tone: "text-blue-700 dark:text-blue-400" },
     approved: { icon: <CheckCircle2 className="h-4 w-4" />, label: "Approved", tone: "text-emerald-700 dark:text-emerald-400" },
-    paid: { icon: <CheckCircle2 className="h-4 w-4" />, label: "Paid — credits added", tone: "text-emerald-700 dark:text-emerald-400" },
+    paid: { icon: <CheckCircle2 className="h-4 w-4" />, label: "Paid — lessons added", tone: "text-emerald-700 dark:text-emerald-400" },
     cancelled: { icon: <X className="h-4 w-4" />, label: "Cancelled", tone: "text-muted-foreground" },
   };
   const s = map[status];
