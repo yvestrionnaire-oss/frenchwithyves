@@ -370,7 +370,7 @@ export default function Book() {
               <Badge variant="secondary">Rescheduling · {duration} min</Badge>
             ) : (
               <Badge variant="secondary">
-                {credits} credit{credits === 1 ? "" : "s"} · {credits} lesson{credits === 1 ? "" : "s"} to book
+                {credits} lesson{credits === 1 ? "" : "s"} to book
               </Badge>
             )}
           </div>
