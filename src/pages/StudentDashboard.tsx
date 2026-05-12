@@ -243,15 +243,15 @@ export default function StudentDashboard() {
           <Card className="md:col-span-2 border-primary/30">
             <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <div className="text-sm text-muted-foreground">Available credits</div>
+                <div className="text-sm text-muted-foreground">Available lessons</div>
                 <div className="mt-1 flex items-baseline gap-2">
                   <span className="text-5xl font-semibold text-primary">{credits}</span>
                   <span className="text-sm font-medium text-muted-foreground">
-                    = {credits} lesson{credits === 1 ? "" : "s"} you can book
+                    {credits === 1 ? "lesson remaining" : "lessons remaining"}
                   </span>
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  💡 Each credit = one 60-minute lesson. Book them all at once, or one at a time.
+                  💡 Each lesson is 60 minutes. Book them all at once, or one at a time.
                 </p>
               </div>
               <Button asChild size="lg" disabled={credits < 1}>
