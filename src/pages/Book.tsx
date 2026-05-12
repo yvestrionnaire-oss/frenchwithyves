@@ -542,7 +542,7 @@ export default function Book() {
                       : `${selected.size} lesson${selected.size === 1 ? "" : "s"} selected`}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {`${selected.size} × 60 min · ${selected.size} credit${selected.size === 1 ? "" : "s"}`}
+                    {`${selected.size} × 60 min · ${selected.size} lesson${selected.size === 1 ? "" : "s"}`}
                   </div>
                 </>
               )}
