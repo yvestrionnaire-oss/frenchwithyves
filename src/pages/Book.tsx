@@ -392,7 +392,7 @@ export default function Book() {
         {!canBook && (
           <Card className="mb-6 border-destructive/50 p-4">
             <p className="text-sm text-destructive">
-              You don't have any credits. Request a package from your dashboard.
+              You don't have any lessons available. Request a package from your dashboard.
             </p>
           </Card>
         )}
