@@ -385,7 +385,7 @@ export default function Book() {
           <p className="mt-1 text-muted-foreground">
             {isRescheduling
               ? `Currently ${new Date(rescheduleLesson!.scheduled_at).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}. Pick a new slot below.`
-              : `Yves teaches between 5:30 AM and 7:00 PM Peru time. Pick up to ${credits} slot${credits === 1 ? "" : "s"} — 1 credit = 1 lesson.`}
+              : `Yves teaches between 5:30 AM and 7:00 PM Peru time. Pick up to ${credits} lesson slot${credits === 1 ? "" : "s"}.`}
           </p>
         </div>
 
