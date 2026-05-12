@@ -404,7 +404,7 @@ export default function StudentDashboard() {
           <h2 className="mb-3 text-xl font-semibold">Request a package</h2>
           <p className="mb-4 text-sm text-muted-foreground">
             Pick a package — Yves will email you a payment link, and once payment is confirmed,
-            credits appear here so you can book your slots.
+            your lessons appear here so you can book your slots.
           </p>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {visiblePackages.map((pkg) => (
