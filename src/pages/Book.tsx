@@ -272,7 +272,7 @@ export default function Book() {
             next.clear();
             next.add(key);
           } else {
-            toast({ title: "Limit reached", description: `You can book up to ${maxSlots} lesson${maxSlots === 1 ? "" : "s"} (1 per credit).` });
+            toast({ title: "Limit reached", description: `You can book up to ${maxSlots} lesson${maxSlots === 1 ? "" : "s"}.` });
             return prev;
           }
         } else next.add(key);
