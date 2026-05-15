@@ -138,7 +138,7 @@ export default function StudentDashboard() {
   async function cancelRequest(id: string) {
     const { error } = await supabase.rpc("cancel_request", { _request_id: id });
     if (error) {
-      toast({ title: "Failed", description: error.message, variant: "destructive" });
+      toast({ title: "Can't cancel", description: error.message, variant: "destructive" });
       return;
     }
     await loadAll();
