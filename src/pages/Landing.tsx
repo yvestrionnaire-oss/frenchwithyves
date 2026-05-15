@@ -51,7 +51,7 @@ export default function Landing() {
       {/* Intro video */}
       <section className="app-container pb-8">
         <div className="fw-card grid gap-6 p-5 lg:grid-cols-[1fr_0.75fr] lg:items-center">
-          <video className="aspect-video w-full rounded-lg border border-border bg-muted object-cover" controls preload="metadata" src={introVideo}>
+          <video className="aspect-video w-full rounded-lg border border-border bg-muted object-cover" controls preload="none" poster={portrait} src="/yves-introduction.mp4">
             Your browser does not support the video tag.
           </video>
           <div>
