@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { BookOpen, CalendarDays, CheckCircle, CreditCard, Mail, Send, Star, Target, Users, Wallet } from "lucide-react";
 import portrait from "@/assets/yves-trionnaire-real.jpg";
-import introVideo from "@/assets/yves-introduction.mp4";
+
 
 /**
  * Standalone About / profile content shared between the public Landing page
