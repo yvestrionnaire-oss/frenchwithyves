@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { BookOpen, CalendarDays, CheckCircle, CreditCard, Mail, Send, Star, Target, Users, Wallet } from "lucide-react";
 import portrait from "@/assets/yves-trionnaire-real.jpg";
-import introVideo from "@/assets/yves-introduction.mp4";
+
 
 /**
  * Standalone About / profile content shared between the public Landing page
@@ -43,8 +43,9 @@ export default function AboutContent() {
           <video
             className="aspect-video w-full rounded-lg border border-border bg-muted object-cover"
             controls
-            preload="metadata"
-            src={introVideo}
+            preload="none"
+            poster={portrait}
+            src="/yves-introduction.mp4"
           >
             Your browser does not support the video tag.
           </video>
