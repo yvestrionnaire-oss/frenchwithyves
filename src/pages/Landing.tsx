@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { BookOpen, CalendarDays, CheckCircle, CreditCard, Mail, Send, Sparkles, Star, Target, Users, Wallet } from "lucide-react";
 import portrait from "@/assets/yves-trionnaire-real.jpg";
-import introVideo from "@/assets/yves-introduction.mp4";
+
 import { useAuth } from "@/lib/auth";
 import { PACKAGES, packageMath, type PackageDef } from "@/lib/packages";
 
