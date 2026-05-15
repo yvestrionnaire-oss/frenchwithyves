@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { BookOpen, CalendarDays, CheckCircle, CreditCard, Mail, Send, Sparkles, Star, Target, Users, Wallet } from "lucide-react";
 import portrait from "@/assets/yves-trionnaire-real.jpg";
-import introVideo from "@/assets/yves-introduction.mp4";
+
 import { useAuth } from "@/lib/auth";
 import { PACKAGES, packageMath, type PackageDef } from "@/lib/packages";
 
@@ -51,7 +51,7 @@ export default function Landing() {
       {/* Intro video */}
       <section className="app-container pb-8">
         <div className="fw-card grid gap-6 p-5 lg:grid-cols-[1fr_0.75fr] lg:items-center">
-          <video className="aspect-video w-full rounded-lg border border-border bg-muted object-cover" controls preload="metadata" src={introVideo}>
+          <video className="aspect-video w-full rounded-lg border border-border bg-muted object-cover" controls preload="none" poster={portrait} src="/yves-introduction.mp4">
             Your browser does not support the video tag.
           </video>
           <div>
