@@ -43,8 +43,9 @@ export default function AboutContent() {
           <video
             className="aspect-video w-full rounded-lg border border-border bg-muted object-cover"
             controls
-            preload="metadata"
-            src={introVideo}
+            preload="none"
+            poster={portrait}
+            src="/yves-introduction.mp4"
           >
             Your browser does not support the video tag.
           </video>
