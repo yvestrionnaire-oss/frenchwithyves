@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.book_lessons(uuid, timestamp with time zone[]);
