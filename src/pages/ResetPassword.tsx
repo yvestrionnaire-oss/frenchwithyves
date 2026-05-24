@@ -35,8 +35,8 @@ export default function ResetPassword() {
       toast({ title: "Passwords don't match", variant: "destructive" });
       return;
     }
-    if (password.length < 6) {
-      toast({ title: "Password too short", description: "Use at least 6 characters.", variant: "destructive" });
+    if (password.length < 8) {
+      toast({ title: "Password too short", description: "Use at least 8 characters.", variant: "destructive" });
       return;
     }
     setSubmitting(true);
@@ -78,10 +78,11 @@ export default function ResetPassword() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={6}
+                minLength={8}
                 autoComplete="new-password"
                 disabled={!ready}
               />
+              <p className="text-xs text-muted-foreground">Use at least 8 characters.</p>
             </div>
             <div className="space-y-1">
               <Label htmlFor="confirm">Confirm new password</Label>
@@ -91,7 +92,7 @@ export default function ResetPassword() {
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 required
-                minLength={6}
+                minLength={8}
                 autoComplete="new-password"
                 disabled={!ready}
               />
