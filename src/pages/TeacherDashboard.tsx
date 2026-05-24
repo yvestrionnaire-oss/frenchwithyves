@@ -345,7 +345,30 @@ export default function TeacherDashboard() {
             <p className="mb-3 text-sm text-muted-foreground">
               30-min slots in your local time. Booked lessons + Google Calendar busy times. Updates live.
             </p>
-            <TeacherCalendar profiles={profiles} />
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                variant={calendarMode === "add" ? "default" : "outline"}
+                onClick={() => setCalendarMode((m) => (m === "add" ? "idle" : "add"))}
+                className={cn(calendarMode === "add" && "bg-emerald-600 hover:bg-emerald-700 text-white")}
+              >
+                <PlusCircle className="h-4 w-4" /> Add Time
+              </Button>
+              <Button
+                size="sm"
+                variant={calendarMode === "remove" ? "default" : "outline"}
+                onClick={() => setCalendarMode((m) => (m === "remove" ? "idle" : "remove"))}
+                className={cn(calendarMode === "remove" && "bg-destructive hover:bg-destructive/90 text-destructive-foreground")}
+              >
+                <MinusCircle className="h-4 w-4" /> Remove Time
+              </Button>
+              {calendarMode !== "idle" && (
+                <Button size="sm" variant="ghost" onClick={() => setCalendarMode("idle")}>
+                  Done
+                </Button>
+              )}
+            </div>
+            <TeacherCalendar profiles={profiles} mode={calendarMode} />
           </div>
 
           <aside className="lg:col-span-1">
