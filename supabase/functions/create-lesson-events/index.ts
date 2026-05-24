@@ -96,9 +96,14 @@ Deno.serve(async (req) => {
       .in("id", studentIds);
     const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
 
-    const results: Array<{ lessonId: string; meetLink: string | null; eventId: string | null; error?: string }> = [];
+    const results: Array<{ lessonId: string; meetLink: string | null; eventId: string | null; error?: string; skipped?: boolean }> = [];
 
     for (const lesson of lessons) {
+      if (lesson.google_event_id) {
+        console.log("create-lesson-events: lesson", lesson.id, "already has event", lesson.google_event_id, "— skipping");
+        results.push({ lessonId: lesson.id, meetLink: lesson.meet_link ?? null, eventId: lesson.google_event_id, skipped: true });
+        continue;
+      }
       const start = new Date(lesson.scheduled_at);
       const end = new Date(start.getTime() + (lesson.duration_minutes ?? 60) * 60_000);
       const isTrial = lesson.lesson_type === "trial";
