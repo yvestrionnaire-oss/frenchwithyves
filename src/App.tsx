@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/lib/auth";
 import { RequireStudent, RequireTeacher } from "@/components/RouteGuards";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Landing from "./pages/Landing";
 import NotFound from "./pages/NotFound";
 
@@ -28,49 +29,51 @@ function RouteFallback() {
 }
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Suspense fallback={<RouteFallback />}>
-            <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route
-                path="/student"
-                element={
-                  <RequireStudent>
-                    <StudentDashboard />
-                  </RequireStudent>
-                }
-              />
-              <Route
-                path="/book"
-                element={
-                  <RequireStudent>
-                    <Book />
-                  </RequireStudent>
-                }
-              />
-              <Route
-                path="/teacher"
-                element={
-                  <RequireTeacher>
-                    <TeacherDashboard />
-                  </RequireTeacher>
-                }
-              />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <Suspense fallback={<RouteFallback />}>
+              <Routes>
+                <Route path="/" element={<Landing />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route
+                  path="/student"
+                  element={
+                    <RequireStudent>
+                      <StudentDashboard />
+                    </RequireStudent>
+                  }
+                />
+                <Route
+                  path="/book"
+                  element={
+                    <RequireStudent>
+                      <Book />
+                    </RequireStudent>
+                  }
+                />
+                <Route
+                  path="/teacher"
+                  element={
+                    <RequireTeacher>
+                      <TeacherDashboard />
+                    </RequireTeacher>
+                  }
+                />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
