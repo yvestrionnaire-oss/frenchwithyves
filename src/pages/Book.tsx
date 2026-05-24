@@ -126,6 +126,7 @@ export default function Book() {
 
   // Pre-compute booked & busy intervals as full ranges (ms).
   // When rescheduling, exclude the lesson being moved.
+  // Block overrides are treated as occupied so students can't book over them.
   const occupied = useMemo(() => {
     const ranges: [number, number][] = [];
     const excludeId = rescheduleLesson?.id ?? rescheduleId;
@@ -137,8 +138,33 @@ export default function Book() {
     for (const b of busy) {
       ranges.push([new Date(b.start).getTime(), new Date(b.end).getTime()]);
     }
+    for (const o of overrides) {
+      if (o.kind !== "block") continue;
+      ranges.push([new Date(o.starts_at).getTime(), new Date(o.ends_at).getTime()]);
+    }
     return ranges;
-  }, [lessons, busy, rescheduleId, rescheduleLesson]);
+  }, [lessons, busy, overrides, rescheduleId, rescheduleLesson]);
+
+  // "open" overrides expose extra slots that fall outside the teacher's
+  // default teaching hours.
+  const openRanges = useMemo(() => {
+    return overrides
+      .filter((o) => o.kind === "open")
+      .map((o) => [new Date(o.starts_at).getTime(), new Date(o.ends_at).getTime()] as [number, number]);
+  }, [overrides]);
+
+  function isOpenedByOverride(slotStart: Date, durationMin: number): boolean {
+    const s = slotStart.getTime();
+    const e = s + durationMin * 60_000;
+    // Treat as opened if every minute of [s,e) is covered by some "open" range.
+    // Simple check: every 30-min cell within is covered.
+    for (let t = s; t < e; t += 30 * 60_000) {
+      const cellEnd = t + 30 * 60_000;
+      const covered = openRanges.some(([os, oe]) => os <= t && oe >= cellEnd);
+      if (!covered) return false;
+    }
+    return true;
+  }
 
   // Data-model guard for the 30-minute grid: every lesson/busy range marks each
   // 30-minute cell it touches, not just the cell where it starts.
