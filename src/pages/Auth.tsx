@@ -79,6 +79,11 @@ export default function Auth() {
 
   return (
     <div className="min-h-dvh bg-background">
+      <Seo
+        title={mode === "signup" ? "Sign up — French with Yves" : mode === "signin" ? "Sign in — French with Yves" : "Reset password — French with Yves"}
+        description="Sign in or create an account to book private French lessons with Yves Trionnaire."
+        path="/auth"
+      />
       <header className="border-b">
         <div className="container mx-auto flex items-center justify-between px-4 py-4">
           <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
