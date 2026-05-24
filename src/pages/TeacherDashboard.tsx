@@ -339,7 +339,7 @@ export default function TeacherDashboard() {
           <div className="lg:col-span-2">
             <h2 className="mb-3 text-xl font-semibold">Weekly schedule</h2>
             <p className="mb-3 text-sm text-muted-foreground">
-              30-min slots in your local time. Click an open slot to block yourself, or an amber slot to open extra availability outside teaching hours.
+              30-min slots in your local time. Booked lessons + Google Calendar busy times. Updates live.
             </p>
             <TeacherCalendar profiles={profiles} />
           </div>

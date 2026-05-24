@@ -1,12 +1,9 @@
-// Weekly calendar for the teacher: shows booked lessons + Google Calendar events.
-// Teacher can click empty slots to block their availability (inside default hours)
-// or to open extra slots (outside default hours). Click again to remove the override.
+// Read-only weekly calendar for the teacher: shows booked lessons + Google Calendar events.
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Loader2, Video, Plus, Ban } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -24,12 +21,6 @@ type Lesson = {
 };
 type Profile = { id: string; full_name: string | null };
 type Busy = { start: string; end: string };
-type Override = {
-  id: string;
-  kind: "block" | "open";
-  starts_at: string;
-  ends_at: string;
-};
 
 function startOfWeek(d: Date) {
   const out = new Date(d);
@@ -58,9 +49,7 @@ export function TeacherCalendar({ profiles }: { profiles: Profile[] }) {
   const [weekOffset, setWeekOffset] = useState(0);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [busy, setBusy] = useState<Busy[]>([]);
-  const [overrides, setOverrides] = useState<Override[]>([]);
   const [loading, setLoading] = useState(true);
-  const [pendingSlot, setPendingSlot] = useState<number | null>(null);
 
   const weekStart = useMemo(() => addDays(startOfWeek(new Date()), weekOffset * 7), [weekOffset]);
   const weekEnd = useMemo(() => addDays(weekStart, 7), [weekStart]);
@@ -71,14 +60,13 @@ export function TeacherCalendar({ profiles }: { profiles: Profile[] }) {
     const ch = supabase
       .channel(`teacher-cal-${weekStart.toISOString()}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "lessons" }, () => void load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "availability_overrides" }, () => void load())
       .subscribe();
     return () => { void supabase.removeChannel(ch); };
   }, [weekStart.toISOString()]);
 
   async function load() {
     setLoading(true);
-    const [l, b, o] = await Promise.all([
+    const [l, b] = await Promise.all([
       supabase
         .from("lessons")
         .select("id, scheduled_at, duration_minutes, lesson_type, status, meet_link, student_id")
@@ -89,15 +77,9 @@ export function TeacherCalendar({ profiles }: { profiles: Profile[] }) {
       supabase.functions.invoke("get-busy-times", {
         body: { from: weekStart.toISOString(), to: weekEnd.toISOString() },
       }),
-      supabase
-        .from("availability_overrides")
-        .select("id, kind, starts_at, ends_at")
-        .lt("starts_at", weekEnd.toISOString())
-        .gt("ends_at", weekStart.toISOString()),
     ]);
     setLessons((l.data ?? []) as Lesson[]);
     setBusy(((b.data as { busy?: Busy[] } | null)?.busy ?? []));
-    setOverrides((o.data ?? []) as Override[]);
     setLoading(false);
   }
 
@@ -113,6 +95,7 @@ export function TeacherCalendar({ profiles }: { profiles: Profile[] }) {
     return d;
   }
 
+  // Map slot start (ms) → lesson starting there
   const lessonByStart = useMemo(() => {
     const map = new Map<number, Lesson>();
     for (const l of lessons) map.set(new Date(l.scheduled_at).getTime(), l);
@@ -137,56 +120,14 @@ export function TeacherCalendar({ profiles }: { profiles: Profile[] }) {
     }
     return false;
   }
-  function overrideForSlot(slot: Date, kind: "block" | "open"): Override | null {
-    const t = slot.getTime();
-    const endT = t + 30 * 60_000;
-    for (const o of overrides) {
-      if (o.kind !== kind) continue;
-      const s = new Date(o.starts_at).getTime();
-      const e = new Date(o.ends_at).getTime();
-      if (kind === "block") {
-        if (s < endT && e > t) return o;
-      } else {
-        if (s <= t && e >= endT) return o;
-      }
-    }
-    return null;
-  }
-
-  async function toggleSlot(slot: Date, kind: "block" | "open") {
-    const existing = overrideForSlot(slot, kind);
-    setPendingSlot(slot.getTime());
-    if (existing) {
-      const { error } = await supabase
-        .from("availability_overrides")
-        .delete()
-        .eq("id", existing.id);
-      setPendingSlot(null);
-      if (error) {
-        toast({ title: "Failed", description: error.message, variant: "destructive" });
-        return;
-      }
-      toast({ title: kind === "block" ? "Slot unblocked" : "Extra slot removed" });
-    } else {
-      const start = new Date(slot);
-      const end = new Date(slot.getTime() + 30 * 60_000);
-      const { error } = await supabase
-        .from("availability_overrides")
-        .insert({ kind, starts_at: start.toISOString(), ends_at: end.toISOString() });
-      setPendingSlot(null);
-      if (error) {
-        toast({ title: "Failed", description: error.message, variant: "destructive" });
-        return;
-      }
-      toast({ title: kind === "block" ? "Slot blocked" : "Extra slot opened" });
-    }
-    await load();
-  }
 
   return (
     <Card className="overflow-hidden">
       <div className="flex items-center justify-between border-b p-3">
-        <Button variant="outline" size="sm" onClick={() => setWeekOffset((w) => w - 1)}>
+        <Button
+          variant="outline" size="sm"
+          onClick={() => setWeekOffset((w) => w - 1)}
+        >
           <ChevronLeft className="h-4 w-4" /> Prev
         </Button>
         <div className="text-sm font-medium">
@@ -201,7 +142,6 @@ export function TeacherCalendar({ profiles }: { profiles: Profile[] }) {
       <div className="border-b bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
         All times shown in your local timezone:{" "}
         <strong className="text-foreground">{Intl.DateTimeFormat().resolvedOptions().timeZone}</strong>
-        <span className="ml-2">· Click an open slot to block it · Click an amber slot to open it for booking</span>
       </div>
       <div className="overflow-x-auto">
         <div className="grid min-w-[800px] grid-cols-[80px_repeat(7,1fr)] sticky top-0 z-10 border-b bg-card">
@@ -246,10 +186,6 @@ export function TeacherCalendar({ profiles }: { profiles: Profile[] }) {
                     return start >= PET_START_MIN && start + 30 <= PET_END_MIN;
                   })();
                   const hasBusy = !covers && busyCoversSlot(slot);
-                  const blockOverride = !covers ? overrideForSlot(slot, "block") : null;
-                  const openOverride = !covers && !inHours ? overrideForSlot(slot, "open") : null;
-                  const isPast = slot.getTime() < Date.now();
-                  const isPending = pendingSlot === slot.getTime();
 
                   if (startsHere) {
                     const profile = profileMap.get(startsHere.student_id);
@@ -271,50 +207,17 @@ export function TeacherCalendar({ profiles }: { profiles: Profile[] }) {
                       </div>
                     );
                   }
-
-                  // Determine clickable kind:
-                  // - if covers/hasBusy/past → not clickable
-                  // - else if inHours → toggle 'block'
-                  // - else → toggle 'open'
-                  const clickable = !covers && !hasBusy && !isPast;
-                  const kind: "block" | "open" = inHours ? "block" : "open";
-
                   return (
-                    <button
+                    <div
                       key={day}
-                      type="button"
-                      disabled={!clickable || isPending}
-                      onClick={() => clickable && void toggleSlot(slot, kind)}
                       className={cn(
-                        "group relative border-r last:border-r-0 h-7 w-full text-left transition-colors",
-                        !inHours && !openOverride && "bg-amber-100/60 dark:bg-amber-950/30",
-                        openOverride && "bg-emerald-200/70 dark:bg-emerald-900/40",
-                        blockOverride && "bg-muted-foreground/30",
+                        "border-r last:border-r-0 h-7",
+                        !inHours && "bg-amber-100/60 dark:bg-amber-950/30",
                         covers && "bg-primary/15",
                         hasBusy && "bg-destructive/10",
-                        clickable && "hover:ring-1 hover:ring-primary/40 cursor-pointer",
-                        !clickable && "cursor-default",
                       )}
-                      title={
-                        hasBusy ? "Google Calendar event"
-                        : blockOverride ? "Blocked — click to unblock"
-                        : openOverride ? "Extra slot — click to remove"
-                        : !clickable ? undefined
-                        : inHours ? "Click to block this slot"
-                        : "Click to open this slot for booking"
-                      }
-                    >
-                      {isPending && (
-                        <Loader2 className="absolute inset-0 m-auto h-3 w-3 animate-spin text-muted-foreground" />
-                      )}
-                      {clickable && !isPending && (
-                        <span className="pointer-events-none absolute inset-0 hidden items-center justify-center text-muted-foreground/70 group-hover:flex">
-                          {kind === "block"
-                            ? (blockOverride ? <Plus className="h-3 w-3 rotate-45" /> : <Ban className="h-3 w-3" />)
-                            : (openOverride ? <Ban className="h-3 w-3" /> : <Plus className="h-3 w-3" />)}
-                        </span>
-                      )}
-                    </button>
+                      title={hasBusy ? "Google Calendar event" : undefined}
+                    />
                   );
                 })}
               </div>
@@ -327,8 +230,6 @@ export function TeacherCalendar({ profiles }: { profiles: Profile[] }) {
         <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-primary/20" /> Lesson booked</span>
         <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-destructive/20" /> Google Calendar busy</span>
         <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-amber-100 dark:bg-amber-950/30" /> Outside teaching hours</span>
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-muted-foreground/30" /> Blocked by you</span>
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-emerald-200/70 dark:bg-emerald-900/40" /> Extra slot opened</span>
       </div>
     </Card>
   );
