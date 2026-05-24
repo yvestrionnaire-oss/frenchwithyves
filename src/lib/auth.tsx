@@ -46,10 +46,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function resolveRole(user: User) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", user.id);
+    if (error) {
+      console.error("Failed to resolve user role:", error);
+      setRole("student");
+      return;
+    }
     if (data?.some((r) => r.role === "teacher")) setRole("teacher");
     else setRole("student");
   }
