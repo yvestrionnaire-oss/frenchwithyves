@@ -8,15 +8,15 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
-
-const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-// Teacher's hours in Peru time (5:30am – 7:00pm)
-const PET_START_MIN = 5 * 60 + 30; // 330
-const PET_END_MIN = 19 * 60;       // 1140
-const SLOT_MINUTES = 30;
-const SLOT_MS = SLOT_MINUTES * 60_000;
-const MAX_WEEKS_AHEAD = 52;
+import {
+  DAYS,
+  MAX_WEEKS_AHEAD,
+  SLOT_MINUTES,
+  SLOT_MS,
+  addDays,
+  isWithinTeachingHours,
+  startOfWeek,
+} from "@/lib/booking";
 
 type LessonRow = {
   id: string;
@@ -28,39 +28,6 @@ type LessonRow = {
 };
 type BusyRange = { start: string; end: string };
 
-function startOfWeek(d: Date) {
-  const out = new Date(d);
-  const day = out.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  out.setDate(out.getDate() + diff);
-  out.setHours(0, 0, 0, 0);
-  return out;
-}
-function addDays(d: Date, n: number) {
-  const out = new Date(d);
-  out.setDate(out.getDate() + n);
-  return out;
-}
-function petMinutes(d: Date): number {
-  // Returns minutes-since-midnight in America/Lima for the given UTC instant.
-  const fmt = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Lima",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-  const parts = fmt.formatToParts(d);
-  const h = Number(parts.find((p) => p.type === "hour")?.value ?? "0");
-  const m = Number(parts.find((p) => p.type === "minute")?.value ?? "0");
-  return h * 60 + m;
-}
-function isWithinTeachingHours(slot: Date, durationMin: number): boolean {
-  const start = petMinutes(slot);
-  const end = start + durationMin;
-  // Slot must not cross midnight in PET — if end is small but start is large, it wrapped.
-  if (end <= start) return false;
-  return start >= PET_START_MIN && end <= PET_END_MIN;
-}
 
 export default function Book() {
   const { user } = useAuth();
