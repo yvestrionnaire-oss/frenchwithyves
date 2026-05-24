@@ -177,6 +177,51 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Honor teacher "block" availability overrides server-side. We use the
+    // anon client to read these (RLS allows any signed-in user to read), but
+    // before authenticating below we don't have a client yet — read with the
+    // anon key directly via a service-role-less query is unnecessary; the
+    // overrides table is public-read for signed-in users, so we fetch with
+    // the anon key and the caller's Authorization header below would also
+    // work. To keep this simple we use the SUPABASE_URL + anon key.
+    const OVERRIDE_URL = Deno.env.get("SUPABASE_URL");
+    const OVERRIDE_KEY =
+      Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
+    if (OVERRIDE_URL && OVERRIDE_KEY) {
+      try {
+        const callerAuth = req.headers.get("Authorization") ?? `Bearer ${OVERRIDE_KEY}`;
+        const ovResp = await fetch(
+          `${OVERRIDE_URL}/rest/v1/availability_overrides?select=kind,starts_at,ends_at&kind=eq.block&starts_at=lt.${encodeURIComponent(to)}&ends_at=gt.${encodeURIComponent(from)}`,
+          { headers: { apikey: OVERRIDE_KEY, Authorization: callerAuth } },
+        );
+        if (ovResp.ok) {
+          const ovs = (await ovResp.json()) as Array<{ starts_at: string; ends_at: string }>;
+          const hasOverrideConflict = lessonRanges.some((lesson) =>
+            ovs.some((r) =>
+              overlaps(
+                lesson.start,
+                lesson.end,
+                new Date(r.starts_at).getTime(),
+                new Date(r.ends_at).getTime(),
+              ),
+            ),
+          );
+          if (hasOverrideConflict) {
+            return json({
+              error: "That time is no longer available — please pick another slot.",
+              description: "Yves has marked that time as unavailable.",
+              code: "TEACHER_BLOCKED",
+            });
+          }
+        } else {
+          console.error("availability_overrides fetch non-2xx:", ovResp.status);
+        }
+      } catch (e) {
+        console.error("availability_overrides fetch failed:", e);
+      }
+    }
+
+
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_ANON_KEY =
       Deno.env.get("SUPABASE_ANON_KEY") ??
