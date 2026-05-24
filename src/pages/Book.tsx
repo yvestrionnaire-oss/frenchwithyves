@@ -72,7 +72,7 @@ export default function Book() {
 
   async function load() {
     setLoading(true);
-    const [lessonsRes, balRes, busyRes, bookedRes] = await Promise.all([
+    const [lessonsRes, balRes, busyRes, bookedRes, overridesRes] = await Promise.all([
       supabase
         .from("lessons")
         .select("id, scheduled_at, duration_minutes, status, lesson_type, student_id")
@@ -87,6 +87,11 @@ export default function Book() {
         _from: weekStart.toISOString(),
         _to: addDays(weekStart, 14).toISOString(),
       }),
+      supabase
+        .from("availability_overrides")
+        .select("kind, starts_at, ends_at")
+        .lt("starts_at", addDays(weekStart, 14).toISOString())
+        .gt("ends_at", weekStart.toISOString()),
     ]);
 
     setLessons((lessonsRes.data ?? []) as LessonRow[]);
@@ -97,6 +102,7 @@ export default function Book() {
     const otherBooked: BusyRange[] = ((bookedRes.data as Array<{ start_at: string; end_at: string }> | null) ?? [])
       .map((r) => ({ start: r.start_at, end: r.end_at }));
     setBusy([...calendarBusy, ...otherBooked]);
+    setOverrides((overridesRes.data ?? []) as Override[]);
 
     setLoading(false);
   }
