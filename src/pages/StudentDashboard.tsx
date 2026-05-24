@@ -256,7 +256,7 @@ export default function StudentDashboard() {
                 </p>
               </div>
               <Button asChild size="lg" disabled={credits < 1}>
-                <Link to={credits > 0 ? "/book" : "/book"}>
+                <Link to="/book">
                   <CalendarDays className="h-4 w-4" />
                   {credits > 0 ? `Book ${credits} lesson${credits === 1 ? "" : "s"}` : "No lessons"}
                 </Link>
