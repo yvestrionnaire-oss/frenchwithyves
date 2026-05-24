@@ -86,6 +86,7 @@ export default function TeacherDashboard() {
     const v = window.localStorage.getItem("fwy.teacherLessonsFilter");
     return v === "upcoming" || v === "completed" ? v : "upcoming";
   });
+  const [studentNameFilter, setStudentNameFilter] = useState("");
   useEffect(() => {
     window.localStorage.setItem("fwy.teacherLessonsFilter", lessonsFilter);
   }, [lessonsFilter]);
