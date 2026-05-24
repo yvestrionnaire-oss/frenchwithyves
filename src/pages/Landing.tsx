@@ -34,7 +34,15 @@ export default function Landing() {
           </p>
         </div>
         <div className="relative">
-          <img src={portrait} alt="Yves Trionnaire, online French teacher" width={512} height={512} className="aspect-[4/3] w-full rounded-lg object-cover shadow-soft" />
+          <video
+            className="aspect-[4/3] w-full rounded-lg object-cover shadow-soft"
+            controls
+            preload="none"
+            poster={portrait}
+            src="/yves-introduction.mp4"
+          >
+            Your browser does not support the video tag.
+          </video>
           <div className="absolute left-4 top-10 grid gap-3">
             <div className="fw-card flex items-center gap-3 px-4 py-3">
               <Star className="h-5 w-5 fill-primary text-primary" />
@@ -48,19 +56,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Intro video */}
-      <section className="app-container pb-8">
-        <div className="fw-card grid gap-6 p-5 lg:grid-cols-[1fr_0.75fr] lg:items-center">
-          <video className="aspect-video w-full rounded-lg border border-border bg-muted object-cover" controls preload="none" poster={portrait} src="/yves-introduction.mp4">
-            Your browser does not support the video tag.
-          </video>
-          <div>
-            <p className="text-sm font-bold text-primary">Introduction video</p>
-            <h2 className="mt-2 text-2xl font-bold">Meet Yves before your first lesson</h2>
-            <p className="mt-3 text-secondaryText">A short welcome from Yves so you can get a feel for his calm, structured teaching style.</p>
-          </div>
-        </div>
-      </section>
 
       {/* Stats */}
       <section className="app-container grid gap-4 py-6 md:grid-cols-2 lg:grid-cols-4">
