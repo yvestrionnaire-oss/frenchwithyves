@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      availability_overrides: {
+        Row: {
+          created_at: string
+          ends_at: string
+          id: string
+          kind: Database["public"]["Enums"]["availability_override_kind"]
+          note: string | null
+          starts_at: string
+        }
+        Insert: {
+          created_at?: string
+          ends_at: string
+          id?: string
+          kind: Database["public"]["Enums"]["availability_override_kind"]
+          note?: string | null
+          starts_at: string
+        }
+        Update: {
+          created_at?: string
+          ends_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["availability_override_kind"]
+          note?: string | null
+          starts_at?: string
+        }
+        Relationships: []
+      }
       availability_rules: {
         Row: {
           created_at: string
@@ -373,6 +400,7 @@ export type Database = {
     }
     Enums: {
       app_role: "student" | "teacher"
+      availability_override_kind: "block" | "open"
       lesson_status: "scheduled" | "completed" | "cancelled"
       purchase_status:
         | "pending"
@@ -508,6 +536,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["student", "teacher"],
+      availability_override_kind: ["block", "open"],
       lesson_status: ["scheduled", "completed", "cancelled"],
       purchase_status: [
         "pending",
