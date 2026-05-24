@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import AboutContent from "@/components/AboutContent";
+import { Seo } from "@/components/Seo";
 
 export default function About() {
   const { user, role } = useAuth();
@@ -11,6 +12,11 @@ export default function About() {
 
   return (
     <div className="min-h-dvh bg-background">
+      <Seo
+        title="About Yves Trionnaire — DAEFLE Certified French Teacher"
+        description="Meet Yves, your DAEFLE certified native French teacher. 9+ years teaching, 5.0 rating from 8,500+ lessons. Learn his method, background, and student reviews."
+        path="/about"
+      />
       <header className="border-b">
         <div className="container mx-auto flex items-center justify-between px-4 py-4">
           <Button asChild variant="ghost" size="sm">

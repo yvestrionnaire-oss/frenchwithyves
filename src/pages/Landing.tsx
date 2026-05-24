@@ -5,6 +5,7 @@ import portrait from "@/assets/yves-trionnaire-real.jpg";
 import { useAuth } from "@/lib/auth";
 import { PACKAGES, packageMath, type PackageDef } from "@/lib/packages";
 import { ProfileTabs, StatsGrid, StepCard } from "@/components/sections/ProfileSections";
+import { Seo } from "@/components/Seo";
 
 export default function Landing() {
   const { user, role, loading } = useAuth();
@@ -13,6 +14,11 @@ export default function Landing() {
   }
   return (
     <main>
+      <Seo
+        title="Yves Trionnaire — Private French Lessons Online"
+        description="Book private online French lessons with Yves Trionnaire, DAEFLE certified native French teacher. 5.0 rating, 8,500+ lessons taught."
+        path="/"
+      />
       <Header />
 
       {/* Hero */}
