@@ -35,11 +35,34 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ---- Authorization ----
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Not authenticated" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const SUPABASE_ANON_KEY =
+      Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
+    if (!SUPABASE_ANON_KEY) throw new Error("SUPABASE_ANON_KEY not configured");
+    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData } = await userClient.auth.getUser();
+    const user = userData?.user;
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Not authenticated" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const { data: lessons, error: fetchErr } = await supabase
       .from("lessons")
-      .select("id, scheduled_at, duration_minutes, lesson_type, student_id")
+      .select("id, scheduled_at, duration_minutes, lesson_type, student_id, meet_link, google_event_id")
       .in("id", body.lessonIds);
 
     if (fetchErr) throw fetchErr;
@@ -49,6 +72,21 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Authorize caller against every lesson in the batch
+    const { data: roleData } = await userClient.rpc("has_role", {
+      _user_id: user.id,
+      _role: "teacher",
+    });
+    const isTeacher = roleData === true;
+    const notAllowed = lessons.some((l) => l.student_id !== user.id && !isTeacher);
+    if (notAllowed) {
+      return new Response(JSON.stringify({ error: "Not allowed" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    console.log("create-lesson-events: caller", user.id, "authorized for", body.lessonIds.length, "lessons");
 
     // Pull profiles in one query
     const studentIds = Array.from(new Set(lessons.map((l) => l.student_id).filter(Boolean)));
