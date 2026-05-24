@@ -336,7 +336,7 @@ export default function StudentDashboard() {
             ) : (
               <LessonsView
                 lessons={filteredLessonItems}
-                onReschedule={(id) => { window.location.href = `/book?reschedule=${id}`; }}
+                onReschedule={(id) => navigate(`/book?reschedule=${id}`)}
                 onCancel={cancelLesson}
                 rescheduleLabel="Reschedule"
                 emptyText={
