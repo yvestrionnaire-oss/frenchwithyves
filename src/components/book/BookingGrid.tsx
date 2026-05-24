@@ -26,6 +26,7 @@ export function BookingGrid({
   isContinuationOf,
   canStartLessonAt,
   isThirtyMinuteCellOccupied,
+  isOpenedByOverride,
   toggle,
 }: Props) {
   function slotDate(dayIdx: number, hour: number, minute: number) {
