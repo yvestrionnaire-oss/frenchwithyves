@@ -385,7 +385,7 @@ export default function StudentDashboard() {
                             </div>
                           </div>
                           {(r.status === "pending" || r.status === "payment_link_sent") && (
-                            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => cancelRequest(r.id)}>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" aria-label="Cancel request" onClick={() => cancelRequest(r.id)}>
                               <X className="h-3.5 w-3.5" />
                             </Button>
                           )}
