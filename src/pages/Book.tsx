@@ -1,22 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, CalendarCheck, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { cn } from "@/lib/utils";
 import {
-  DAYS,
-  MAX_WEEKS_AHEAD,
   SLOT_MINUTES,
   SLOT_MS,
+  MAX_WEEKS_AHEAD,
   addDays,
   isWithinTeachingHours,
   startOfWeek,
 } from "@/lib/booking";
+import { BookingGrid } from "@/components/book/BookingGrid";
+import { WeekNavigator } from "@/components/book/WeekNavigator";
+import { BookingFooter } from "@/components/book/BookingFooter";
 
 type LessonRow = {
   id: string;
