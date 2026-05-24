@@ -26,6 +26,7 @@ type Props = {
   rescheduleLabel?: string; // e.g. "Reschedule" or "Request reschedule"
   emptyText?: string;
   headerExtra?: React.ReactNode; // rendered to the left of the List/Calendar toggle
+  scrollableList?: boolean;
 };
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
