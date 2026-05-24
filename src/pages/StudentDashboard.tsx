@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   CalendarDays,
   CheckCircle2,
@@ -57,6 +57,7 @@ type Proposal = {
 
 export default function StudentDashboard() {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   // Note: trial query-param flow removed.
   const [credits, setCredits] = useState(0);
   const [lessons, setLessons] = useState<Lesson[]>([]);
@@ -255,7 +256,7 @@ export default function StudentDashboard() {
                 </p>
               </div>
               <Button asChild size="lg" disabled={credits < 1}>
-                <Link to={credits > 0 ? "/book" : "/book"}>
+                <Link to="/book">
                   <CalendarDays className="h-4 w-4" />
                   {credits > 0 ? `Book ${credits} lesson${credits === 1 ? "" : "s"}` : "No lessons"}
                 </Link>
@@ -335,7 +336,7 @@ export default function StudentDashboard() {
             ) : (
               <LessonsView
                 lessons={filteredLessonItems}
-                onReschedule={(id) => { window.location.href = `/book?reschedule=${id}`; }}
+                onReschedule={(id) => navigate(`/book?reschedule=${id}`)}
                 onCancel={cancelLesson}
                 rescheduleLabel="Reschedule"
                 emptyText={
@@ -384,7 +385,7 @@ export default function StudentDashboard() {
                             </div>
                           </div>
                           {(r.status === "pending" || r.status === "payment_link_sent") && (
-                            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => cancelRequest(r.id)}>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" aria-label="Cancel request" onClick={() => cancelRequest(r.id)}>
                               <X className="h-3.5 w-3.5" />
                             </Button>
                           )}
