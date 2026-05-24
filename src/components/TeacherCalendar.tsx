@@ -1,4 +1,6 @@
 // Read-only weekly calendar for the teacher: shows booked lessons + Google Calendar events.
+// When `mode` is "add" or "remove", clicking a 30-min cell toggles an
+// availability override of kind "open" or "block" respectively.
 import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Loader2, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +23,9 @@ type Lesson = {
 };
 type Profile = { id: string; full_name: string | null };
 type Busy = { start: string; end: string };
+type OverrideKind = "open" | "block";
+type Override = { id: string; kind: OverrideKind; starts_at: string; ends_at: string };
+export type CalendarMode = "idle" | "add" | "remove";
 
 function startOfWeek(d: Date) {
   const out = new Date(d);
@@ -45,11 +50,19 @@ function petMinutes(d: Date) {
   return h * 60 + m;
 }
 
-export function TeacherCalendar({ profiles }: { profiles: Profile[] }) {
+export function TeacherCalendar({
+  profiles,
+  mode = "idle",
+}: {
+  profiles: Profile[];
+  mode?: CalendarMode;
+}) {
   const [weekOffset, setWeekOffset] = useState(0);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [busy, setBusy] = useState<Busy[]>([]);
+  const [overrides, setOverrides] = useState<Override[]>([]);
   const [loading, setLoading] = useState(true);
+  const [savingSlot, setSavingSlot] = useState<string | null>(null);
 
   const weekStart = useMemo(() => addDays(startOfWeek(new Date()), weekOffset * 7), [weekOffset]);
   const weekEnd = useMemo(() => addDays(weekStart, 7), [weekStart]);
@@ -60,13 +73,14 @@ export function TeacherCalendar({ profiles }: { profiles: Profile[] }) {
     const ch = supabase
       .channel(`teacher-cal-${weekStart.toISOString()}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "lessons" }, () => void load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "availability_overrides" }, () => void load())
       .subscribe();
     return () => { void supabase.removeChannel(ch); };
   }, [weekStart.toISOString()]);
 
   async function load() {
     setLoading(true);
-    const [l, b] = await Promise.all([
+    const [l, b, o] = await Promise.all([
       supabase
         .from("lessons")
         .select("id, scheduled_at, duration_minutes, lesson_type, status, meet_link, student_id")
@@ -77,9 +91,15 @@ export function TeacherCalendar({ profiles }: { profiles: Profile[] }) {
       supabase.functions.invoke("get-busy-times", {
         body: { from: weekStart.toISOString(), to: weekEnd.toISOString() },
       }),
+      supabase
+        .from("availability_overrides")
+        .select("id, kind, starts_at, ends_at")
+        .lt("starts_at", weekEnd.toISOString())
+        .gt("ends_at", weekStart.toISOString()),
     ]);
     setLessons((l.data ?? []) as Lesson[]);
     setBusy(((b.data as { busy?: Busy[] } | null)?.busy ?? []));
+    setOverrides((o.data ?? []) as Override[]);
     setLoading(false);
   }
 
@@ -95,7 +115,6 @@ export function TeacherCalendar({ profiles }: { profiles: Profile[] }) {
     return d;
   }
 
-  // Map slot start (ms) → lesson starting there
   const lessonByStart = useMemo(() => {
     const map = new Map<number, Lesson>();
     for (const l of lessons) map.set(new Date(l.scheduled_at).getTime(), l);
@@ -120,6 +139,43 @@ export function TeacherCalendar({ profiles }: { profiles: Profile[] }) {
     }
     return false;
   }
+  function overrideCoveringSlot(slot: Date, kind: OverrideKind): Override | null {
+    const t = slot.getTime();
+    for (const o of overrides) {
+      if (o.kind !== kind) continue;
+      const s = new Date(o.starts_at).getTime();
+      const e = new Date(o.ends_at).getTime();
+      if (s <= t && t < e) return o;
+    }
+    return null;
+  }
+
+  async function handleSlotClick(slot: Date) {
+    if (mode === "idle") return;
+    const kind: OverrideKind = mode === "add" ? "open" : "block";
+    const key = slot.toISOString();
+    setSavingSlot(key);
+    // If an override of this kind already covers this exact slot, remove it.
+    const existing = overrideCoveringSlot(slot, kind);
+    if (existing) {
+      const { error } = await supabase.from("availability_overrides").delete().eq("id", existing.id);
+      setSavingSlot(null);
+      if (error) console.error("delete override", error);
+      else void load();
+      return;
+    }
+    const ends = new Date(slot.getTime() + 30 * 60_000);
+    const { error } = await supabase.from("availability_overrides").insert({
+      kind,
+      starts_at: slot.toISOString(),
+      ends_at: ends.toISOString(),
+    });
+    setSavingSlot(null);
+    if (error) console.error("insert override", error);
+    else void load();
+  }
+
+  const interactive = mode !== "idle";
 
   return (
     <Card className="overflow-hidden">
@@ -142,6 +198,11 @@ export function TeacherCalendar({ profiles }: { profiles: Profile[] }) {
       <div className="border-b bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
         All times shown in your local timezone:{" "}
         <strong className="text-foreground">{Intl.DateTimeFormat().resolvedOptions().timeZone}</strong>
+        {interactive && (
+          <span className="ml-2 italic">
+            · {mode === "add" ? "Click a cell to open extra time (click again to undo)" : "Click a cell to block time (click again to undo)"}
+          </span>
+        )}
       </div>
       <div className="overflow-x-auto">
         <div className="grid min-w-[800px] grid-cols-[80px_repeat(7,1fr)] sticky top-0 z-10 border-b bg-card">
@@ -186,6 +247,9 @@ export function TeacherCalendar({ profiles }: { profiles: Profile[] }) {
                     return start >= PET_START_MIN && start + 30 <= PET_END_MIN;
                   })();
                   const hasBusy = !covers && busyCoversSlot(slot);
+                  const blockOverride = overrideCoveringSlot(slot, "block");
+                  const openOverride = overrideCoveringSlot(slot, "open");
+                  const isSaving = savingSlot === slot.toISOString();
 
                   if (startsHere) {
                     const profile = profileMap.get(startsHere.student_id);
@@ -207,16 +271,32 @@ export function TeacherCalendar({ profiles }: { profiles: Profile[] }) {
                       </div>
                     );
                   }
+                  const Cell = interactive ? "button" : "div";
                   return (
-                    <div
+                    <Cell
                       key={day}
+                      type={interactive ? ("button" as const) : undefined}
+                      onClick={interactive ? () => void handleSlotClick(slot) : undefined}
+                      disabled={interactive ? (!!covers || isSaving) : undefined}
                       className={cn(
-                        "border-r last:border-r-0 h-7",
-                        !inHours && "bg-amber-100/60 dark:bg-amber-950/30",
+                        "border-r last:border-r-0 h-7 w-full text-left",
+                        !inHours && !openOverride && "bg-amber-100/60 dark:bg-amber-950/30",
                         covers && "bg-primary/15",
                         hasBusy && "bg-destructive/10",
+                        openOverride && "bg-emerald-200/70 dark:bg-emerald-900/40",
+                        blockOverride && "bg-destructive/30",
+                        interactive && !covers && "cursor-pointer hover:ring-2 hover:ring-primary/40 hover:ring-inset",
+                        isSaving && "opacity-50",
                       )}
-                      title={hasBusy ? "Google Calendar event" : undefined}
+                      title={
+                        blockOverride
+                          ? "Blocked (override) — click to remove"
+                          : openOverride
+                            ? "Extra availability (override) — click to remove"
+                            : hasBusy
+                              ? "Google Calendar event"
+                              : undefined
+                      }
                     />
                   );
                 })}
@@ -229,6 +309,8 @@ export function TeacherCalendar({ profiles }: { profiles: Profile[] }) {
       <div className="flex flex-wrap items-center gap-4 border-t p-3 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-primary/20" /> Lesson booked</span>
         <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-destructive/20" /> Google Calendar busy</span>
+        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-destructive/30" /> Blocked (override)</span>
+        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-emerald-200/70 dark:bg-emerald-900/40" /> Extra availability</span>
         <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-amber-100 dark:bg-amber-950/30" /> Outside teaching hours</span>
       </div>
     </Card>

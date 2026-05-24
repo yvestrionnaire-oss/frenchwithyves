@@ -13,6 +13,7 @@ type Props = {
   isContinuationOf: (slot: Date) => boolean;
   canStartLessonAt: (slot: Date) => boolean;
   isThirtyMinuteCellOccupied: (slot: Date) => boolean;
+  isOpenedByOverride?: (slot: Date) => boolean;
   toggle: (slot: Date) => void;
 };
 
@@ -25,6 +26,7 @@ export function BookingGrid({
   isContinuationOf,
   canStartLessonAt,
   isThirtyMinuteCellOccupied,
+  isOpenedByOverride,
   toggle,
 }: Props) {
   function slotDate(dayIdx: number, hour: number, minute: number) {
@@ -82,7 +84,8 @@ export function BookingGrid({
                   const slot = slotDate(day, hour, minute);
                   const isPast = slot.getTime() < Date.now();
                   const isContinuation = isContinuationOf(slot);
-                  const inHours = isWithinTeachingHours(slot, duration);
+                  const openedExtra = !!isOpenedByOverride?.(slot);
+                  const inHours = isWithinTeachingHours(slot, duration) || openedExtra;
                   const isSelected = selected.has(slot.toISOString());
                   const fullLessonBlocked = !isSelected && !isContinuation && !canStartLessonAt(slot);
                   const cellOccupied = isThirtyMinuteCellOccupied(slot);
@@ -101,7 +104,9 @@ export function BookingGrid({
                       title={
                         inHours && !cellOccupied && fullLessonBlocked && !isPast
                           ? "Free, but not enough room for a 60-minute lesson starting here"
-                          : undefined
+                          : openedExtra
+                            ? "Extra availability opened by Yves"
+                            : undefined
                       }
                       className={cn(
                         "border-r last:border-r-0 h-7 text-[10px] transition-colors",
@@ -110,6 +115,7 @@ export function BookingGrid({
                         inHours && cellOccupied && "bg-destructive/10",
                         inHours && !cellOccupied && fullLessonBlocked && "bg-muted/30",
                         inHours && isPast && !isSelected && !isContinuation && "bg-muted/40",
+                        openedExtra && !cellOccupied && !isSelected && !isContinuation && "bg-emerald-100/70 dark:bg-emerald-900/30",
                         (isSelected || isContinuation) && "bg-primary text-primary-foreground hover:bg-primary",
                       )}
                     />

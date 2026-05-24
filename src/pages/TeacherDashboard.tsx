@@ -8,6 +8,8 @@ import {
   Loader2,
   LogOut,
   Mail,
+  MinusCircle,
+  PlusCircle,
   Send,
   Users,
   X,
@@ -19,10 +21,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { TeacherCalendar } from "@/components/TeacherCalendar";
+import { TeacherCalendar, type CalendarMode } from "@/components/TeacherCalendar";
 import { LessonsView, type LessonItem, hueFromString, initialsFromName } from "@/components/LessonsView";
 import { TeacherRescheduleDialog } from "@/components/TeacherRescheduleDialog";
 import { EarningsSection } from "@/components/teacher/EarningsSection";
+import { cn } from "@/lib/utils";
 
 type Pkg = { id: string; name: string; price_cents: number; is_free: boolean; credits: number };
 type Profile = { id: string; full_name: string | null; email: string | null };
@@ -75,6 +78,7 @@ export default function TeacherDashboard() {
   const [busy, setBusy] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [rescheduleLessonId, setRescheduleLessonId] = useState<string | null>(null);
+  const [calendarMode, setCalendarMode] = useState<CalendarMode>("idle");
   type LessonsFilter = "upcoming" | "completed";
   const [lessonsFilter, setLessonsFilter] = useState<LessonsFilter>(() => {
     if (typeof window === "undefined") return "upcoming";
@@ -341,7 +345,30 @@ export default function TeacherDashboard() {
             <p className="mb-3 text-sm text-muted-foreground">
               30-min slots in your local time. Booked lessons + Google Calendar busy times. Updates live.
             </p>
-            <TeacherCalendar profiles={profiles} />
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                variant={calendarMode === "add" ? "default" : "outline"}
+                onClick={() => setCalendarMode((m) => (m === "add" ? "idle" : "add"))}
+                className={cn(calendarMode === "add" && "bg-emerald-600 hover:bg-emerald-700 text-white")}
+              >
+                <PlusCircle className="h-4 w-4" /> Add Time
+              </Button>
+              <Button
+                size="sm"
+                variant={calendarMode === "remove" ? "default" : "outline"}
+                onClick={() => setCalendarMode((m) => (m === "remove" ? "idle" : "remove"))}
+                className={cn(calendarMode === "remove" && "bg-destructive hover:bg-destructive/90 text-destructive-foreground")}
+              >
+                <MinusCircle className="h-4 w-4" /> Remove Time
+              </Button>
+              {calendarMode !== "idle" && (
+                <Button size="sm" variant="ghost" onClick={() => setCalendarMode("idle")}>
+                  Done
+                </Button>
+              )}
+            </div>
+            <TeacherCalendar profiles={profiles} mode={calendarMode} />
           </div>
 
           <aside className="lg:col-span-1">

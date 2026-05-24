@@ -27,6 +27,7 @@ type LessonRow = {
   student_id: string;
 };
 type BusyRange = { start: string; end: string };
+type Override = { kind: "open" | "block"; starts_at: string; ends_at: string };
 
 
 export default function Book() {
@@ -37,6 +38,7 @@ export default function Book() {
   const [lessons, setLessons] = useState<LessonRow[]>([]);
   const [rescheduleLesson, setRescheduleLesson] = useState<LessonRow | null>(null);
   const [busy, setBusy] = useState<BusyRange[]>([]);
+  const [overrides, setOverrides] = useState<Override[]>([]);
   const [credits, setCredits] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [weekOffset, setWeekOffset] = useState(0);
@@ -70,7 +72,7 @@ export default function Book() {
 
   async function load() {
     setLoading(true);
-    const [lessonsRes, balRes, busyRes, bookedRes] = await Promise.all([
+    const [lessonsRes, balRes, busyRes, bookedRes, overridesRes] = await Promise.all([
       supabase
         .from("lessons")
         .select("id, scheduled_at, duration_minutes, status, lesson_type, student_id")
@@ -85,6 +87,11 @@ export default function Book() {
         _from: weekStart.toISOString(),
         _to: addDays(weekStart, 14).toISOString(),
       }),
+      supabase
+        .from("availability_overrides")
+        .select("kind, starts_at, ends_at")
+        .lt("starts_at", addDays(weekStart, 14).toISOString())
+        .gt("ends_at", weekStart.toISOString()),
     ]);
 
     setLessons((lessonsRes.data ?? []) as LessonRow[]);
@@ -95,6 +102,7 @@ export default function Book() {
     const otherBooked: BusyRange[] = ((bookedRes.data as Array<{ start_at: string; end_at: string }> | null) ?? [])
       .map((r) => ({ start: r.start_at, end: r.end_at }));
     setBusy([...calendarBusy, ...otherBooked]);
+    setOverrides((overridesRes.data ?? []) as Override[]);
 
     setLoading(false);
   }
@@ -118,6 +126,7 @@ export default function Book() {
 
   // Pre-compute booked & busy intervals as full ranges (ms).
   // When rescheduling, exclude the lesson being moved.
+  // Block overrides are treated as occupied so students can't book over them.
   const occupied = useMemo(() => {
     const ranges: [number, number][] = [];
     const excludeId = rescheduleLesson?.id ?? rescheduleId;
@@ -129,8 +138,33 @@ export default function Book() {
     for (const b of busy) {
       ranges.push([new Date(b.start).getTime(), new Date(b.end).getTime()]);
     }
+    for (const o of overrides) {
+      if (o.kind !== "block") continue;
+      ranges.push([new Date(o.starts_at).getTime(), new Date(o.ends_at).getTime()]);
+    }
     return ranges;
-  }, [lessons, busy, rescheduleId, rescheduleLesson]);
+  }, [lessons, busy, overrides, rescheduleId, rescheduleLesson]);
+
+  // "open" overrides expose extra slots that fall outside the teacher's
+  // default teaching hours.
+  const openRanges = useMemo(() => {
+    return overrides
+      .filter((o) => o.kind === "open")
+      .map((o) => [new Date(o.starts_at).getTime(), new Date(o.ends_at).getTime()] as [number, number]);
+  }, [overrides]);
+
+  function isOpenedByOverride(slotStart: Date, durationMin: number): boolean {
+    const s = slotStart.getTime();
+    const e = s + durationMin * 60_000;
+    // Treat as opened if every minute of [s,e) is covered by some "open" range.
+    // Simple check: every 30-min cell within is covered.
+    for (let t = s; t < e; t += 30 * 60_000) {
+      const cellEnd = t + 30 * 60_000;
+      const covered = openRanges.some(([os, oe]) => os <= t && oe >= cellEnd);
+      if (!covered) return false;
+    }
+    return true;
+  }
 
   // Data-model guard for the 30-minute grid: every lesson/busy range marks each
   // 30-minute cell it touches, not just the cell where it starts.
@@ -188,12 +222,16 @@ export default function Book() {
   function areAllLessonCellsFree(slotStart: Date, durationMin: number): boolean {
     const cells = lessonCells(slotStart, durationMin);
     if (cells.length === 0) return false;
-    return cells.every((cell) => isWithinTeachingHours(cell, SLOT_MINUTES) && !isThirtyMinuteCellOccupied(cell));
+    return cells.every(
+      (cell) =>
+        (isWithinTeachingHours(cell, SLOT_MINUTES) || isOpenedByOverride(cell, SLOT_MINUTES)) &&
+        !isThirtyMinuteCellOccupied(cell),
+    );
   }
 
   function canStartLessonAt(slotStart: Date, selection: Set<string> = selected): boolean {
     if (slotStart.getTime() < Date.now()) return false;
-    if (!isWithinTeachingHours(slotStart, duration)) return false;
+    if (!isWithinTeachingHours(slotStart, duration) && !isOpenedByOverride(slotStart, duration)) return false;
     return areAllLessonCellsFree(slotStart, duration)
       && !rangeOverlapsOccupied(slotStart, duration)
       && !selectedOverlapsRange(slotStart, duration, selection);
@@ -380,6 +418,7 @@ export default function Book() {
           isContinuationOf={isContinuationOf}
           canStartLessonAt={canStartLessonAt}
           isThirtyMinuteCellOccupied={isThirtyMinuteCellOccupied}
+          isOpenedByOverride={(slot) => isOpenedByOverride(slot, SLOT_MINUTES)}
           toggle={toggle}
         />
 
