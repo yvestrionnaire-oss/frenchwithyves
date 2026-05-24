@@ -77,7 +77,7 @@ export function LessonsView({ lessons, onReschedule, onCancel, rescheduleLabel =
   );
 }
 
-function ListView({ lessons, onReschedule, onCancel, rescheduleLabel, emptyText }: Required<Pick<Props, "lessons" | "rescheduleLabel" | "emptyText">> & Pick<Props, "onReschedule" | "onCancel">) {
+function ListView({ lessons, onReschedule, onCancel, rescheduleLabel, emptyText, scrollable }: Required<Pick<Props, "lessons" | "rescheduleLabel" | "emptyText">> & Pick<Props, "onReschedule" | "onCancel"> & { scrollable?: boolean }) {
   if (lessons.length === 0) {
     return (
       <Card>
