@@ -364,161 +364,31 @@ export default function Book() {
           </Card>
         )}
 
-        {/* Week navigator */}
-        <div className="mb-4 flex items-center justify-between">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setWeekOffset((w) => Math.max(0, w - 1))}
-            disabled={weekOffset === 0}
-          >
-            <ChevronLeft className="h-4 w-4" /> Previous
-          </Button>
-          <div className="text-sm font-medium">
-            Week of {weekStart.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}
-            <span className="ml-2 text-muted-foreground">({weekOffset + 1} / {MAX_WEEKS_AHEAD})</span>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setWeekOffset((w) => Math.min(MAX_WEEKS_AHEAD - 1, w + 1))}
-            disabled={weekOffset === MAX_WEEKS_AHEAD - 1}
-          >
-            Next <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+        <WeekNavigator
+          weekOffset={weekOffset}
+          weekStart={weekStart}
+          onPrev={() => setWeekOffset((w) => Math.max(0, w - 1))}
+          onNext={() => setWeekOffset((w) => Math.min(MAX_WEEKS_AHEAD - 1, w + 1))}
+        />
 
-        <Card className="overflow-hidden">
-          <div className="border-b bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-            All times shown in your local timezone:{" "}
-            <strong className="text-foreground">
-              {Intl.DateTimeFormat().resolvedOptions().timeZone}
-            </strong>
-          </div>
-          <div className="overflow-x-auto">
-            <div className="grid min-w-[800px] grid-cols-[80px_repeat(7,1fr)] sticky top-0 z-10 border-b bg-card">
-              <div className="p-2 text-xs font-medium text-muted-foreground">Local time</div>
-              {Array.from({ length: 7 }).map((_, i) => {
-                const d = addDays(weekStart, i);
-                const isToday = d.toDateString() === new Date().toDateString();
-                return (
-                  <div
-                    key={i}
-                    className={cn("p-2 text-center text-xs font-medium", isToday && "text-primary font-semibold")}
-                  >
-                    <div>{DAYS[d.getDay()]}</div>
-                    <div className="text-base font-semibold text-foreground">{d.getDate()}</div>
-                  </div>
-                );
-              })}
-            </div>
+        <BookingGrid
+          weekStart={weekStart}
+          halfHourSlots={halfHourSlots}
+          duration={duration}
+          selected={selected}
+          canBook={canBook}
+          isContinuationOf={isContinuationOf}
+          canStartLessonAt={canStartLessonAt}
+          isThirtyMinuteCellOccupied={isThirtyMinuteCellOccupied}
+          toggle={toggle}
+        />
 
-            <div className="max-h-[70vh] overflow-y-auto">
-              {halfHourSlots.map(({ hour, minute }) => {
-                // Use the first day of the week to format an example label
-                const sample = slotDate(0, hour, minute);
-                const isHourMark = minute === 0;
-                const labelText = sample.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
-                return (
-                  <div
-                    key={`${hour}-${minute}`}
-                    className={cn(
-                      "grid min-w-[800px] grid-cols-[80px_repeat(7,1fr)]",
-                      isHourMark ? "border-t-2 border-border" : "border-t border-dashed border-border/50",
-                    )}
-                  >
-                    <div className={cn(
-                      "border-r px-2 py-1 text-[11px] flex items-start",
-                      isHourMark ? "font-bold text-foreground" : "text-muted-foreground/70",
-                    )}>
-                      {labelText}
-                    </div>
-                    {Array.from({ length: 7 }).map((_, day) => {
-                      const slot = slotDate(day, hour, minute);
-                      const isPast = slot.getTime() < Date.now();
-
-                      // 60-min lessons can start at ANY 30-min boundary (e.g. 8:30 → 9:30).
-                      // A cell is "continuation" only if a selection starts 30 min before it.
-                      const isContinuation = isContinuationOf(slot);
-                      const inHours = isWithinTeachingHours(slot, duration);
-                      const isSelected = selected.has(slot.toISOString());
-                      const fullLessonBlocked = !isSelected && !isContinuation && !canStartLessonAt(slot);
-                      const cellOccupied = isThirtyMinuteCellOccupied(slot);
-
-                      const cellDisabled =
-                        isContinuation /* second half of a selection is non-clickable */ ||
-                        !inHours || isPast || fullLessonBlocked || (!canBook && !isSelected);
-
-                      return (
-                        <button
-                          key={day}
-                          type="button"
-                          onClick={() => !isContinuation && toggle(slot)}
-                          disabled={cellDisabled}
-                          aria-label={`${slot.toLocaleString()}`}
-                          title={
-                            inHours && !cellOccupied && fullLessonBlocked && !isPast
-                              ? "Free, but not enough room for a 60-minute lesson starting here"
-                              : undefined
-                          }
-                          className={cn(
-                            "border-r last:border-r-0 h-7 text-[10px] transition-colors",
-                            !inHours && "bg-amber-100/60 dark:bg-amber-950/30",
-                            inHours && !cellDisabled && "hover:bg-primary/10",
-                            // Red ONLY when the cell is truly occupied (existing lesson or Google Calendar busy).
-                            inHours && cellOccupied && "bg-destructive/10",
-                            // Free, but a 60-min lesson can't start here (e.g. next 30 min is busy):
-                            // dim it instead of marking it "busy" so the user isn't misled.
-                            inHours && !cellOccupied && fullLessonBlocked && "bg-muted/30",
-                            inHours && isPast && !isSelected && !isContinuation && "bg-muted/40",
-                            (isSelected || isContinuation) && "bg-primary text-primary-foreground hover:bg-primary",
-                          )}
-                        />
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Legend */}
-          <div className="flex flex-wrap items-center gap-4 border-t p-3 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm border bg-background" /> Available</span>
-            <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-primary" /> Selected{duration === 60 && " (60 min = 2 cells)"}</span>
-            <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-destructive/20" /> Booked / busy</span>
-            <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-amber-100 dark:bg-amber-950/30" /> Outside teaching hours</span>
-          </div>
-        </Card>
-
-        <div className="sticky bottom-4 z-10 mt-6 flex items-center justify-between rounded-xl border bg-card p-4 shadow-lg">
-          <div className="flex items-center gap-3">
-            <CalendarCheck className="h-5 w-5 text-primary" />
-            <div className="text-sm">
-              {selected.size === 0 ? (
-                <span className="text-muted-foreground">
-                  {`Pick up to ${maxSlots} slot${maxSlots === 1 ? "" : "s"}`}
-                </span>
-              ) : (
-                <>
-                  <div className="font-medium">
-                    {selected.size === 1
-                      ? new Date(Array.from(selected)[0]).toLocaleString(undefined, {
-                          weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
-                        })
-                      : `${selected.size} lesson${selected.size === 1 ? "" : "s"} selected`}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {`${selected.size} × 60 min · ${selected.size} lesson${selected.size === 1 ? "" : "s"}`}
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-          <Button onClick={confirmBooking} disabled={selected.size === 0 || submitting} size="lg">
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : `Confirm${selected.size > 1 ? ` (${selected.size})` : ""}`}
-          </Button>
-        </div>
+        <BookingFooter
+          selected={selected}
+          maxSlots={maxSlots}
+          submitting={submitting}
+          onConfirm={confirmBooking}
+        />
       </main>
     </div>
   );
