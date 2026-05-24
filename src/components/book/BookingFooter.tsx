@@ -5,10 +5,11 @@ type Props = {
   selected: Set<string>;
   maxSlots: number;
   submitting: boolean;
+  duration: number;
   onConfirm: () => void;
 };
 
-export function BookingFooter({ selected, maxSlots, submitting, onConfirm }: Props) {
+export function BookingFooter({ selected, maxSlots, submitting, duration, onConfirm }: Props) {
   return (
     <div className="sticky bottom-4 z-10 mt-6 flex items-center justify-between rounded-xl border bg-card p-4 shadow-lg">
       <div className="flex items-center gap-3">
@@ -28,7 +29,7 @@ export function BookingFooter({ selected, maxSlots, submitting, onConfirm }: Pro
                   : `${selected.size} lesson${selected.size === 1 ? "" : "s"} selected`}
               </div>
               <div className="text-xs text-muted-foreground">
-                {`${selected.size} × 60 min · ${selected.size} lesson${selected.size === 1 ? "" : "s"}`}
+                {`${selected.size} × ${duration} min · ${selected.size} lesson${selected.size === 1 ? "" : "s"}`}
               </div>
             </>
           )}
