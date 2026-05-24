@@ -273,6 +273,7 @@ export default function TeacherDashboard() {
                       colorHue: hueFromString(p?.id ?? l.student_id),
                     } as LessonItem;
                   })}
+                  scrollableList
                   onReschedule={(id) => setRescheduleLessonId(id)}
                   onCancel={async (id) => {
                     const { error } = await supabase.rpc("cancel_lesson", { _lesson_id: id });
@@ -328,8 +329,8 @@ export default function TeacherDashboard() {
               </Card>
             ) : (
               <Card>
-                <CardContent className="divide-y p-0">
-                  {notifications.slice(0, 12).map((n) => {
+                <CardContent className="divide-y p-0 max-h-[400px] overflow-y-auto">
+                  {notifications.slice(0, 10).map((n) => {
                     const profile = profileMap.get(n.student_id);
                     const isUnread = !n.read_at;
                     let label = "";

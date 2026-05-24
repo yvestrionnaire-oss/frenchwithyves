@@ -26,6 +26,7 @@ type Props = {
   rescheduleLabel?: string; // e.g. "Reschedule" or "Request reschedule"
   emptyText?: string;
   headerExtra?: React.ReactNode; // rendered to the left of the List/Calendar toggle
+  scrollableList?: boolean;
 };
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -36,7 +37,7 @@ function startOfMonth(d: Date) {
   return o;
 }
 
-export function LessonsView({ lessons, onReschedule, onCancel, rescheduleLabel = "Reschedule", emptyText = "No lessons yet.", headerExtra }: Props) {
+export function LessonsView({ lessons, onReschedule, onCancel, rescheduleLabel = "Reschedule", emptyText = "No lessons yet.", headerExtra, scrollableList }: Props) {
   const [view, setView] = useState<"list" | "calendar">("list");
 
   return (
@@ -68,7 +69,7 @@ export function LessonsView({ lessons, onReschedule, onCancel, rescheduleLabel =
       </div>
 
       {view === "list" ? (
-        <ListView lessons={lessons} onReschedule={onReschedule} onCancel={onCancel} rescheduleLabel={rescheduleLabel} emptyText={emptyText} />
+        <ListView lessons={lessons} onReschedule={onReschedule} onCancel={onCancel} rescheduleLabel={rescheduleLabel} emptyText={emptyText} scrollable={scrollableList} />
       ) : (
         <MonthCalendar lessons={lessons} />
       )}
@@ -76,7 +77,7 @@ export function LessonsView({ lessons, onReschedule, onCancel, rescheduleLabel =
   );
 }
 
-function ListView({ lessons, onReschedule, onCancel, rescheduleLabel, emptyText }: Required<Pick<Props, "lessons" | "rescheduleLabel" | "emptyText">> & Pick<Props, "onReschedule" | "onCancel">) {
+function ListView({ lessons, onReschedule, onCancel, rescheduleLabel, emptyText, scrollable }: Required<Pick<Props, "lessons" | "rescheduleLabel" | "emptyText">> & Pick<Props, "onReschedule" | "onCancel"> & { scrollable?: boolean }) {
   if (lessons.length === 0) {
     return (
       <Card>
@@ -103,7 +104,7 @@ function ListView({ lessons, onReschedule, onCancel, rescheduleLabel, emptyText 
   }, [lessons]);
 
   return (
-    <div className="space-y-6">
+    <div className={cn("space-y-6", scrollable && "max-h-[600px] overflow-y-auto pr-1")}>
       {groups.map((g) => (
         <div key={g.key}>
           <div className="mb-2 text-sm font-semibold text-muted-foreground">{g.label}</div>
