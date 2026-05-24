@@ -296,10 +296,6 @@ function SharedNotesPanel() {
 function AboutPanel() {
   return (
     <>
-      <div className="mb-5 rounded-lg border border-primary bg-secondary p-4">
-        <strong>Personalized first lesson</strong>
-        <p className="mt-1 text-sm text-secondaryText">Start with a first lesson to discuss your interests, objectives, preferred schedule, and the best approach for regular progress.</p>
-      </div>
       <p className="leading-relaxed text-secondaryText">
         Bonjour, I'm Yves, a French tutor from France and a DAEFLE certified teacher from the Alliance Française. I have been teaching French for more than nine years and offer classes adapted to your needs: conversation, vocabulary, grammar, pronunciation, exam preparation, business French, or long-term fluency. My approach is interactive and practical, with real-life communication from the start so students can quickly feel the use of the language.
       </p>
