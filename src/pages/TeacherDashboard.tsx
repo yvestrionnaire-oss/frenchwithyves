@@ -351,6 +351,91 @@ export default function TeacherDashboard() {
                 </CardContent>
               </Card>
             )}
+
+            <div className="mt-6">
+              <h2 className="mb-3 text-xl font-semibold">
+                Action needed
+                {pendingRequests.length > 0 && (
+                  <Badge className="ml-2" variant="destructive">
+                    {pendingRequests.length}
+                  </Badge>
+                )}
+              </h2>
+              {loading ? (
+                <Card>
+                  <CardContent className="flex items-center justify-center py-10 text-muted-foreground">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
+                  </CardContent>
+                </Card>
+              ) : pendingRequests.length === 0 ? (
+                <Card>
+                  <CardContent className="py-6 text-center text-sm text-muted-foreground">
+                    Nothing waiting on you. ☕
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  {pendingRequests.map((r) => {
+                    const profile = profileMap.get(r.student_id);
+                    const pkg = pkgMap.get(r.package_id);
+                    const isTrial = pkg?.is_free;
+                    return (
+                      <Card key={r.id} className="border-l-4 border-l-primary/60">
+                        <CardContent className="space-y-3 p-3">
+                          <div>
+                            <div className="text-sm font-medium">
+                              {profile?.full_name ?? "Student"}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {pkg?.name} {!isTrial && pkg && `· $${(pkg.price_cents / 100).toFixed(0)}`}
+                            </div>
+                            <button
+                              onClick={() => copyEmail(profile?.email ?? null)}
+                              className="mt-1 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                            >
+                              <Copy className="h-3 w-3" /> {profile?.email}
+                            </button>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            {isTrial ? (
+                              <Button size="sm" disabled={busy === r.id} onClick={() => action("approve_trial", r.id)}>
+                                <CheckCircle2 className="h-4 w-4" /> Approve
+                              </Button>
+                            ) : (
+                              <>
+                                {r.status === "pending" && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={busy === r.id}
+                                    onClick={() => action("mark_payment_link_sent", r.id)}
+                                  >
+                                    <Send className="h-4 w-4" /> Link sent
+                                  </Button>
+                                )}
+                                {r.status === "payment_link_sent" && <Badge variant="outline" className="text-[10px]">Link sent ✓</Badge>}
+                                <Button size="sm" disabled={busy === r.id} onClick={() => action("confirm_paid", r.id)}>
+                                  <CheckCircle2 className="h-4 w-4" /> Paid
+                                </Button>
+                              </>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              aria-label="Cancel request"
+                              disabled={busy === r.id}
+                              onClick={() => action("cancel_request", r.id)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </aside>
         </section>
 
