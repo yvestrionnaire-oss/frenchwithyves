@@ -57,6 +57,7 @@ type Proposal = {
 
 export default function StudentDashboard() {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   // Note: trial query-param flow removed.
   const [credits, setCredits] = useState(0);
   const [lessons, setLessons] = useState<Lesson[]>([]);
