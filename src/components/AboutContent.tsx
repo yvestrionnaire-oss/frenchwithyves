@@ -27,21 +27,8 @@ export default function AboutContent() {
           </p>
         </div>
         <div className="relative">
-          <img
-            src={portrait}
-            alt="Yves Trionnaire, online French teacher"
-            width={512}
-            height={512}
-            className="aspect-[4/3] w-full rounded-lg object-cover shadow-soft"
-          />
-        </div>
-      </section>
-
-      {/* Intro video */}
-      <section>
-        <div className="fw-card grid gap-6 p-5 lg:grid-cols-[1fr_0.75fr] lg:items-center">
           <video
-            className="aspect-video w-full rounded-lg border border-border bg-muted object-cover"
+            className="aspect-[4/3] w-full rounded-lg object-cover shadow-soft"
             controls
             preload="none"
             poster={portrait}
@@ -49,15 +36,9 @@ export default function AboutContent() {
           >
             Your browser does not support the video tag.
           </video>
-          <div>
-            <p className="text-sm font-bold text-primary">Introduction video</p>
-            <h2 className="mt-2 text-2xl font-bold">A short welcome from Yves</h2>
-            <p className="mt-3 text-secondaryText">
-              Get a feel for his calm, structured teaching style before your next lesson.
-            </p>
-          </div>
         </div>
       </section>
+
 
       {/* Stats */}
       <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
