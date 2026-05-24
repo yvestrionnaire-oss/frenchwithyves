@@ -222,12 +222,16 @@ export default function Book() {
   function areAllLessonCellsFree(slotStart: Date, durationMin: number): boolean {
     const cells = lessonCells(slotStart, durationMin);
     if (cells.length === 0) return false;
-    return cells.every((cell) => isWithinTeachingHours(cell, SLOT_MINUTES) && !isThirtyMinuteCellOccupied(cell));
+    return cells.every(
+      (cell) =>
+        (isWithinTeachingHours(cell, SLOT_MINUTES) || isOpenedByOverride(cell, SLOT_MINUTES)) &&
+        !isThirtyMinuteCellOccupied(cell),
+    );
   }
 
   function canStartLessonAt(slotStart: Date, selection: Set<string> = selected): boolean {
     if (slotStart.getTime() < Date.now()) return false;
-    if (!isWithinTeachingHours(slotStart, duration)) return false;
+    if (!isWithinTeachingHours(slotStart, duration) && !isOpenedByOverride(slotStart, duration)) return false;
     return areAllLessonCellsFree(slotStart, duration)
       && !rangeOverlapsOccupied(slotStart, duration)
       && !selectedOverlapsRange(slotStart, duration, selection);
