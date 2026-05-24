@@ -69,7 +69,7 @@ export function LessonsView({ lessons, onReschedule, onCancel, rescheduleLabel =
       </div>
 
       {view === "list" ? (
-        <ListView lessons={lessons} onReschedule={onReschedule} onCancel={onCancel} rescheduleLabel={rescheduleLabel} emptyText={emptyText} />
+        <ListView lessons={lessons} onReschedule={onReschedule} onCancel={onCancel} rescheduleLabel={rescheduleLabel} emptyText={emptyText} scrollable={scrollableList} />
       ) : (
         <MonthCalendar lessons={lessons} />
       )}
