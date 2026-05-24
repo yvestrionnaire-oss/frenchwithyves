@@ -13,6 +13,7 @@ type Props = {
   isContinuationOf: (slot: Date) => boolean;
   canStartLessonAt: (slot: Date) => boolean;
   isThirtyMinuteCellOccupied: (slot: Date) => boolean;
+  isOpenedByOverride?: (slot: Date) => boolean;
   toggle: (slot: Date) => void;
 };
 
