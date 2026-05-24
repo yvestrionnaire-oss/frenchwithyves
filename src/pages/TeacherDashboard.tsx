@@ -244,11 +244,17 @@ export default function TeacherDashboard() {
             <h2 className="mb-3 text-xl font-semibold">Lessons</h2>
             {(() => {
               const now = Date.now();
+              const nameQuery = studentNameFilter.trim().toLowerCase();
               const matches = lessons.filter((l) => {
                 if (l.status === "cancelled") return false;
                 const t = new Date(l.scheduled_at).getTime();
                 if (lessonsFilter === "upcoming") return l.status === "scheduled" && t >= now;
                 return l.status === "completed" || (l.status === "scheduled" && t < now);
+              }).filter((l) => {
+                if (!nameQuery) return true;
+                const p = profileMap.get(l.student_id);
+                const name = (p?.full_name ?? p?.email ?? "").toLowerCase();
+                return name.includes(nameQuery);
               });
               matches.sort((a, b) => {
                 const at = new Date(a.scheduled_at).getTime();
@@ -284,15 +290,23 @@ export default function TeacherDashboard() {
                       : "No completed lessons yet."
                   }
                   headerExtra={
-                    <Select value={lessonsFilter} onValueChange={(v) => setLessonsFilter(v as typeof lessonsFilter)}>
-                      <SelectTrigger className="w-full sm:w-[180px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="upcoming">Upcoming</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <Input
+                        placeholder="Filter by student name…"
+                        value={studentNameFilter}
+                        onChange={(e) => setStudentNameFilter(e.target.value)}
+                        className="w-full sm:w-[200px]"
+                      />
+                      <Select value={lessonsFilter} onValueChange={(v) => setLessonsFilter(v as typeof lessonsFilter)}>
+                        <SelectTrigger className="w-full sm:w-[180px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="upcoming">Upcoming</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   }
                 />
               );
