@@ -37,7 +37,7 @@ function startOfMonth(d: Date) {
   return o;
 }
 
-export function LessonsView({ lessons, onReschedule, onCancel, rescheduleLabel = "Reschedule", emptyText = "No lessons yet.", headerExtra }: Props) {
+export function LessonsView({ lessons, onReschedule, onCancel, rescheduleLabel = "Reschedule", emptyText = "No lessons yet.", headerExtra, scrollableList }: Props) {
   const [view, setView] = useState<"list" | "calendar">("list");
 
   return (
