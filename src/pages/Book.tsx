@@ -387,6 +387,7 @@ export default function Book() {
           selected={selected}
           maxSlots={maxSlots}
           submitting={submitting}
+          duration={duration}
           onConfirm={confirmBooking}
         />
       </main>
