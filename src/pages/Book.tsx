@@ -38,6 +38,7 @@ export default function Book() {
   const [lessons, setLessons] = useState<LessonRow[]>([]);
   const [rescheduleLesson, setRescheduleLesson] = useState<LessonRow | null>(null);
   const [busy, setBusy] = useState<BusyRange[]>([]);
+  const [overrides, setOverrides] = useState<Override[]>([]);
   const [credits, setCredits] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [weekOffset, setWeekOffset] = useState(0);
