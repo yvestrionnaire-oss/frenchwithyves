@@ -8,6 +8,8 @@ import {
   Loader2,
   LogOut,
   Mail,
+  MinusCircle,
+  PlusCircle,
   Send,
   Users,
   X,
@@ -19,10 +21,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { TeacherCalendar } from "@/components/TeacherCalendar";
+import { TeacherCalendar, type CalendarMode } from "@/components/TeacherCalendar";
 import { LessonsView, type LessonItem, hueFromString, initialsFromName } from "@/components/LessonsView";
 import { TeacherRescheduleDialog } from "@/components/TeacherRescheduleDialog";
 import { EarningsSection } from "@/components/teacher/EarningsSection";
+import { cn } from "@/lib/utils";
 
 type Pkg = { id: string; name: string; price_cents: number; is_free: boolean; credits: number };
 type Profile = { id: string; full_name: string | null; email: string | null };
