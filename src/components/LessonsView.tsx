@@ -104,7 +104,7 @@ function ListView({ lessons, onReschedule, onCancel, rescheduleLabel, emptyText,
   }, [lessons]);
 
   return (
-    <div className="space-y-6">
+    <div className={cn("space-y-6", scrollable && "max-h-[600px] overflow-y-auto pr-1")}>
       {groups.map((g) => (
         <div key={g.key}>
           <div className="mb-2 text-sm font-semibold text-muted-foreground">{g.label}</div>
