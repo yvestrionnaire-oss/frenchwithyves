@@ -43,12 +43,12 @@ export default function Landing() {
           >
             Your browser does not support the video tag.
           </video>
-          <div className="absolute left-4 top-10 grid gap-3">
-            <div className="fw-card flex items-center gap-3 px-4 py-3">
+          <div className="pointer-events-none absolute left-4 top-4 hidden gap-3 md:grid">
+            <div className="fw-card pointer-events-auto flex items-center gap-3 px-4 py-3">
               <Star className="h-5 w-5 fill-primary text-primary" />
               <div><strong className="block leading-none">5.0</strong><p className="text-xs text-secondaryText">Average rating</p></div>
             </div>
-            <div className="fw-card flex items-center gap-3 px-4 py-3">
+            <div className="fw-card pointer-events-auto flex items-center gap-3 px-4 py-3">
               <BookOpen className="h-5 w-5 text-primary" />
               <div><strong className="block leading-none">8,537</strong><p className="text-xs text-secondaryText">Lessons taught</p></div>
             </div>
