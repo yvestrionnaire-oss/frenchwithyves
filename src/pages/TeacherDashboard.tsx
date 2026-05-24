@@ -78,6 +78,7 @@ export default function TeacherDashboard() {
   const [busy, setBusy] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [rescheduleLessonId, setRescheduleLessonId] = useState<string | null>(null);
+  const [calendarMode, setCalendarMode] = useState<CalendarMode>("idle");
   type LessonsFilter = "upcoming" | "completed";
   const [lessonsFilter, setLessonsFilter] = useState<LessonsFilter>(() => {
     if (typeof window === "undefined") return "upcoming";
