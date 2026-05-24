@@ -414,6 +414,7 @@ export default function TeacherDashboard() {
                           <Button
                             size="sm"
                             variant="ghost"
+                            aria-label="Cancel request"
                             disabled={busy === r.id}
                             onClick={() => action("cancel_request", r.id)}
                           >
