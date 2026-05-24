@@ -273,6 +273,7 @@ export default function TeacherDashboard() {
                       colorHue: hueFromString(p?.id ?? l.student_id),
                     } as LessonItem;
                   })}
+                  scrollableList
                   onReschedule={(id) => setRescheduleLessonId(id)}
                   onCancel={async (id) => {
                     const { error } = await supabase.rpc("cancel_lesson", { _lesson_id: id });
