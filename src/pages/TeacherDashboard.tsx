@@ -22,6 +22,7 @@ import { useAuth } from "@/lib/auth";
 import { TeacherCalendar } from "@/components/TeacherCalendar";
 import { LessonsView, type LessonItem, hueFromString, initialsFromName } from "@/components/LessonsView";
 import { TeacherRescheduleDialog } from "@/components/TeacherRescheduleDialog";
+import { EarningsSection } from "@/components/teacher/EarningsSection";
 
 type Pkg = { id: string; name: string; price_cents: number; is_free: boolean; credits: number };
 type Profile = { id: string; full_name: string | null; email: string | null };
