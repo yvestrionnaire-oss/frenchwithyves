@@ -418,6 +418,7 @@ export default function Book() {
           isContinuationOf={isContinuationOf}
           canStartLessonAt={canStartLessonAt}
           isThirtyMinuteCellOccupied={isThirtyMinuteCellOccupied}
+          isOpenedByOverride={(slot) => isOpenedByOverride(slot, SLOT_MINUTES)}
           toggle={toggle}
         />
 
