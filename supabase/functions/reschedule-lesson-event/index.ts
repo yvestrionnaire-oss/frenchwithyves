@@ -29,14 +29,51 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ---- Authorization ----
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Not authenticated" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const SUPABASE_ANON_KEY =
+      Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
+    if (!SUPABASE_ANON_KEY) throw new Error("SUPABASE_ANON_KEY not configured");
+    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData } = await userClient.auth.getUser();
+    const user = userData?.user;
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Not authenticated" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { data: lesson, error } = await supabase
       .from("lessons")
-      .select("id, scheduled_at, duration_minutes, google_event_id")
+      .select("id, scheduled_at, duration_minutes, google_event_id, student_id")
       .eq("id", lessonId)
       .single();
 
     if (error || !lesson) throw new Error("Lesson not found");
+
+    const { data: roleData } = await userClient.rpc("has_role", {
+      _user_id: user.id,
+      _role: "teacher",
+    });
+    const isTeacher = roleData === true;
+    if (lesson.student_id !== user.id && !isTeacher) {
+      return new Response(JSON.stringify({ error: "Not allowed" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    console.log("reschedule-lesson-event: caller", user.id, "authorized for", 1, "lessons");
+
     if (!lesson.google_event_id) {
       return new Response(JSON.stringify({ error: "No calendar event to update" }), {
         status: 400,
