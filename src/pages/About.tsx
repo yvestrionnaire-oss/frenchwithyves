@@ -10,7 +10,7 @@ export default function About() {
   const backLabel = user ? "Back to dashboard" : "Back to home";
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-dvh bg-background">
       <header className="border-b">
         <div className="container mx-auto flex items-center justify-between px-4 py-4">
           <Button asChild variant="ghost" size="sm">
