@@ -27,6 +27,7 @@ type LessonRow = {
   student_id: string;
 };
 type BusyRange = { start: string; end: string };
+type Override = { kind: "open" | "block"; starts_at: string; ends_at: string };
 
 
 export default function Book() {
