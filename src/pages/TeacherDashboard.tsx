@@ -329,8 +329,8 @@ export default function TeacherDashboard() {
               </Card>
             ) : (
               <Card>
-                <CardContent className="divide-y p-0">
-                  {notifications.slice(0, 12).map((n) => {
+                <CardContent className="divide-y p-0 max-h-[400px] overflow-y-auto">
+                  {notifications.slice(0, 10).map((n) => {
                     const profile = profileMap.get(n.student_id);
                     const isUnread = !n.read_at;
                     let label = "";
