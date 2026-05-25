@@ -144,6 +144,31 @@ Deno.serve(async (req) => {
       return json({ error: "Trials must use one slot" });
     }
 
+    // Verify the caller's JWT BEFORE making any calendar calls, so
+    // unauthenticated users cannot probe slot availability.
+    const authHeader = req.headers.get("Authorization") ?? "";
+    if (!authHeader.startsWith("Bearer ")) {
+      return json({ error: "Not authenticated" }, 401);
+    }
+    {
+      const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+      const SUPABASE_ANON_KEY =
+        Deno.env.get("SUPABASE_ANON_KEY") ??
+        Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
+      if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+        return json({ error: "Server misconfigured" }, 500);
+      }
+      const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const token = authHeader.replace("Bearer ", "");
+      const { data, error } = await sb.auth.getClaims(token);
+      if (error || !data?.claims) {
+        return json({ error: "Not authenticated" }, 401);
+      }
+    }
+
+
     const lessonRanges = slots.map((slot) => {
       const start = new Date(slot).getTime();
       if (!Number.isFinite(start)) throw new Error("Invalid slot");
