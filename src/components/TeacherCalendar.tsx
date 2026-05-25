@@ -177,6 +177,22 @@ export function TeacherCalendar({
 
   const interactive = mode !== "idle";
 
+  const hoursAvailableThisWeek = useMemo(() => {
+    let count = 0;
+    for (let d = 0; d < 7; d++) {
+      for (const { hour, minute } of halfHourSlots) {
+        const slot = slotDate(d, hour, minute);
+        const start = petMinutes(slot);
+        const inHours = start >= PET_START_MIN && start + 30 <= PET_END_MIN;
+        const block = overrideCoveringSlot(slot, "block");
+        const open = overrideCoveringSlot(slot, "open");
+        if ((inHours && !block) || (!inHours && open)) count++;
+      }
+    }
+    return count / 2;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overrides, weekStart, halfHourSlots]);
+
   return (
     <Card className="overflow-hidden">
       <div className="flex items-center justify-between border-b p-3">
