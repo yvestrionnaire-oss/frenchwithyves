@@ -162,8 +162,8 @@ Deno.serve(async (req) => {
         global: { headers: { Authorization: authHeader } },
       });
       const token = authHeader.replace("Bearer ", "");
-      const { data, error } = await sb.auth.getClaims(token);
-      if (error || !data?.claims) {
+      const { data, error } = await sb.auth.getUser(token);
+      if (error || !data?.user) {
         return json({ error: "Not authenticated" }, 401);
       }
     }
