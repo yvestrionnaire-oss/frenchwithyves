@@ -181,7 +181,7 @@ Deno.serve(async (req) => {
     const to = new Date(
       Math.max(...lessonRanges.map((r) => r.end)),
     ).toISOString();
-    const busy = await getCalendarBusy(from, to);
+    const busy = await getCalendarBusy(from, to, authHeader);
     console.log("getCalendarBusy returned", busy.length, "ranges");
     const hasCalendarConflict = lessonRanges.some((lesson) =>
       busy.some((range) =>
