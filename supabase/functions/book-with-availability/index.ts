@@ -46,14 +46,14 @@ class CalendarCheckUnavailable extends Error {
  * non-2xx response, an `unavailable: true` flag in the body, malformed
  * shape, or network issue.
  */
-async function getCalendarBusy(from: string, to: string): Promise<BusyRange[]> {
+async function getCalendarBusy(from: string, to: string, callerAuth: string): Promise<BusyRange[]> {
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-  const SERVICE_ROLE_KEY =
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ??
-    Deno.env.get("SERVICE_ROLE_KEY");
-  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+  const SUPABASE_ANON_KEY =
+    Deno.env.get("SUPABASE_ANON_KEY") ??
+    Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     throw new CalendarCheckUnavailable(
-      "Server misconfigured: missing service role for calendar check",
+      "Server misconfigured: missing config for calendar check",
     );
   }
 
@@ -62,8 +62,8 @@ async function getCalendarBusy(from: string, to: string): Promise<BusyRange[]> {
     resp = await fetch(`${SUPABASE_URL}/functions/v1/get-busy-times`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-        apikey: SERVICE_ROLE_KEY,
+        Authorization: callerAuth,
+        apikey: SUPABASE_ANON_KEY,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ from, to }),
