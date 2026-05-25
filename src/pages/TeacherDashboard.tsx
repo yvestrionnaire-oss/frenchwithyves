@@ -89,6 +89,7 @@ export default function TeacherDashboard() {
   const [busy, setBusy] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [rescheduleLessonId, setRescheduleLessonId] = useState<string | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<string | null>(null);
   const [calendarMode, setCalendarMode] = useState<CalendarMode>("idle");
   type LessonsFilter = "upcoming" | "completed";
   const [lessonsFilter, setLessonsFilter] = useState<LessonsFilter>(() => {
@@ -216,6 +217,38 @@ export default function TeacherDashboard() {
     toast({ title: "Email copied", description: email });
   }
 
+  async function confirmCancel() {
+    if (!cancelTarget) return;
+    const id = cancelTarget;
+    const { error } = await supabase.rpc("cancel_lesson", { _lesson_id: id });
+    if (error) {
+      toast({
+        title: "Cancellation failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      setCancelTarget(null);
+      return;
+    }
+    const { error: calErr } = await supabase.functions.invoke("cancel-lesson-event", {
+      body: { lessonId: id },
+    });
+    if (calErr) {
+      toast({
+        title: "Lesson cancelled, but calendar not updated",
+        description: "The lesson status is now cancelled, but the Google Calendar event could not be removed automatically. Please remove it manually.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Lesson cancelled",
+        description: "The lesson has been cancelled and the Google Calendar event was removed.",
+      });
+    }
+    setCancelTarget(null);
+    await loadAll();
+  }
+
   return (
     <div className="min-h-dvh bg-background">
       <header className="border-b">
@@ -285,26 +318,7 @@ export default function TeacherDashboard() {
                   })}
                   scrollableList
                   onReschedule={(id) => setRescheduleLessonId(id)}
-                  onCancel={async (id) => {
-                    const { error } = await supabase.rpc("cancel_lesson", { _lesson_id: id });
-                    if (error) {
-                      toast({ title: "Failed", description: error.message, variant: "destructive" });
-                      return;
-                    }
-                    const { error: calErr } = await supabase.functions.invoke("cancel-lesson-event", {
-                      body: { lessonId: id },
-                    });
-                    if (calErr) {
-                      toast({
-                        title: "Lesson cancelled, calendar sync failed",
-                        description: "The Google Calendar event could not be removed automatically.",
-                        variant: "destructive",
-                      });
-                    } else {
-                      toast({ title: "Lesson cancelled" });
-                    }
-                    await loadAll();
-                  }}
+                  onCancel={(id) => setCancelTarget(id)}
                   rescheduleLabel="Request reschedule"
                   emptyText={
                     lessonsFilter === "upcoming"
@@ -545,6 +559,23 @@ export default function TeacherDashboard() {
         {/* Earnings (bottom) */}
         <EarningsSection lessons={lessons} requests={requests} packages={packages} />
       </main>
+
+      <AlertDialog open={!!cancelTarget} onOpenChange={(open) => !open && setCancelTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel this lesson?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will mark the lesson as cancelled and remove the event from your Google Calendar. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCancelTarget(null)}>Keep lesson</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCancel} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Yes, cancel lesson
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
