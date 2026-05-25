@@ -151,7 +151,18 @@ export default function StudentDashboard() {
       toast({ title: "Failed", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Lesson cancelled" });
+    const { error: calErr } = await supabase.functions.invoke("cancel-lesson-event", {
+      body: { lessonId: id },
+    });
+    if (calErr) {
+      toast({
+        title: "Lesson cancelled, calendar sync failed",
+        description: "The Google Calendar event could not be removed automatically.",
+        variant: "destructive",
+      });
+    } else {
+      toast({ title: "Lesson cancelled" });
+    }
     await loadAll();
   }
 
