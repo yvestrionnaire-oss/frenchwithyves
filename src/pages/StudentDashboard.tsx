@@ -156,10 +156,30 @@ export default function StudentDashboard() {
   }
 
   async function acceptProposal(id: string) {
+    const { data: proposal } = await supabase
+      .from("reschedule_proposals")
+      .select("lesson_id")
+      .eq("id", id)
+      .maybeSingle();
     const { error } = await supabase.rpc("student_accept_proposal", { _proposal_id: id });
     if (error) {
       toast({ title: "Failed", description: error.message, variant: "destructive" });
       return;
+    }
+    if (proposal?.lesson_id) {
+      const { error: calErr } = await supabase.functions.invoke("reschedule-lesson-event", {
+        body: { lessonId: proposal.lesson_id },
+      });
+      if (calErr) {
+        console.error("Failed to update calendar event:", calErr);
+        toast({
+          title: "Reschedule accepted",
+          description: "But the calendar event couldn't be updated — please contact Yves.",
+          variant: "destructive",
+        });
+        await loadAll();
+        return;
+      }
     }
     toast({ title: "Reschedule accepted" });
     await loadAll();
