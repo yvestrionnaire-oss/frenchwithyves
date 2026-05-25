@@ -205,6 +205,10 @@ export function TeacherCalendar({
         <div className="text-sm font-medium">
           Week of {weekStart.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}
           {loading && <Loader2 className="ml-2 inline h-3 w-3 animate-spin" />}
+          <span className="ml-3 text-xs text-muted-foreground">
+            Hours available this week:{" "}
+            <strong className="text-foreground">{hoursAvailableThisWeek.toFixed(1)}</strong>
+          </span>
         </div>
         <Button variant="outline" size="sm" onClick={() => setWeekOffset((w) => w + 1)}>
           Next <ChevronRight className="h-4 w-4" />
