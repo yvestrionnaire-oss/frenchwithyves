@@ -247,16 +247,15 @@ Deno.serve(async (req) => {
     }
 
 
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-    const SUPABASE_ANON_KEY =
+    const RPC_URL = Deno.env.get("SUPABASE_URL");
+    const RPC_KEY =
       Deno.env.get("SUPABASE_ANON_KEY") ??
       Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
-    const authHeader = req.headers.get("Authorization") ?? "";
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !authHeader) {
-      return json({ error: "Not authenticated" });
+    if (!RPC_URL || !RPC_KEY) {
+      return json({ error: "Server misconfigured" }, 500);
     }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    const supabase = createClient(RPC_URL, RPC_KEY, {
       global: { headers: { Authorization: authHeader } },
     });
 
