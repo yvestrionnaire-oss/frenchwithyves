@@ -15,6 +15,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -66,6 +76,7 @@ export default function StudentDashboard() {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [requesting, setRequesting] = useState<string | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<string | null>(null);
   type LessonsFilter = "upcoming" | "completed";
   const [lessonsFilter, setLessonsFilter] = useState<LessonsFilter>(() => {
     if (typeof window === "undefined") return "upcoming";
@@ -145,10 +156,21 @@ export default function StudentDashboard() {
     await loadAll();
   }
 
-  async function cancelLesson(id: string) {
+  function cancelLesson(id: string) {
+    setCancelTarget(id);
+  }
+
+  async function executeCancel() {
+    if (!cancelTarget) return;
+    const id = cancelTarget;
     const { error } = await supabase.rpc("cancel_lesson", { _lesson_id: id });
     if (error) {
-      toast({ title: "Failed", description: error.message, variant: "destructive" });
+      toast({
+        title: "Cancellation failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      setCancelTarget(null);
       return;
     }
     const { error: calErr } = await supabase.functions.invoke("cancel-lesson-event", {
@@ -156,13 +178,17 @@ export default function StudentDashboard() {
     });
     if (calErr) {
       toast({
-        title: "Lesson cancelled, calendar sync failed",
-        description: "The Google Calendar event could not be removed automatically.",
+        title: "Lesson cancelled, but calendar not updated",
+        description: "The lesson status is now cancelled, but the Google Calendar event could not be removed automatically. Please contact Yves.",
         variant: "destructive",
       });
     } else {
-      toast({ title: "Lesson cancelled" });
+      toast({
+        title: "Lesson cancelled",
+        description: "The lesson has been cancelled and the Google Calendar event was removed.",
+      });
     }
+    setCancelTarget(null);
     await loadAll();
   }
 
@@ -470,6 +496,23 @@ export default function StudentDashboard() {
           </div>
         </section>
       </main>
+
+      <AlertDialog open={!!cancelTarget} onOpenChange={(open) => !open && setCancelTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel this lesson?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will mark the lesson as cancelled and remove the event from Yves' Google Calendar. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCancelTarget(null)}>Keep lesson</AlertDialogCancel>
+            <AlertDialogAction onClick={executeCancel} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Yes, cancel lesson
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
