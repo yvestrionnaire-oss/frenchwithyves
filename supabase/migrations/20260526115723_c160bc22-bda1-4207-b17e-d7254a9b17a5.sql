@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS public.__cancel_lesson_test_results;
