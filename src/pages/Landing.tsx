@@ -96,7 +96,7 @@ export default function Landing() {
             Your request appears in my dashboard the moment you submit it.
           </StepCard>
           <StepCard n="3" title="Payment link by email" icon={<Send className="h-5 w-5" />}>
-            I personally email you a secure payment link from <strong>yvestrionnaire@gmail.com</strong>.
+            I personally email you a secure payment link from my email address.
           </StepCard>
           <StepCard n="4" title="You pay" icon={<CreditCard className="h-5 w-5" />}>
             You complete the payment, and my bank notifies me as soon as it lands.
@@ -139,9 +139,9 @@ export default function Landing() {
         <div className="fw-card flex flex-col gap-5 bg-secondary p-6 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-2xl font-bold">A question before booking?</h2>
-            <p className="mt-2 text-secondaryText">All communication happens by email. Write to me at <strong>yvestrionnaire@gmail.com</strong> and I'll get back to you personally.</p>
+            <p className="mt-2 text-secondaryText">All communication happens by email. Write to me and I'll get back to you personally.</p>
           </div>
-          <a href="mailto:yvestrionnaire@gmail.com" className="btn-primary"><Mail className="h-4 w-4" /> yvestrionnaire@gmail.com</a>
+          <a href="mailto:yvestrionnaire@gmail.com" className="btn-primary"><Mail className="h-4 w-4" /> Email me</a>
         </div>
       </section>
 

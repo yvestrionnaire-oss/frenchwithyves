@@ -47,7 +47,7 @@ export default function ResetPassword() {
       return;
     }
     toast({ title: "Password updated", description: "You're now signed in." });
-    navigate("/student", { replace: true });
+    navigate("/", { replace: true });
   };
 
   return (

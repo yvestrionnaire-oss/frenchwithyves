@@ -58,7 +58,7 @@ export default function AboutContent() {
             Your request appears in my dashboard the moment you submit it.
           </StepCard>
           <StepCard n="3" title="Payment link by email" icon={<Send className="h-5 w-5" />}>
-            I personally email you a secure payment link from <strong>yvestrionnaire@gmail.com</strong>.
+            I personally email you a secure payment link from my email address.
           </StepCard>
           <StepCard n="4" title="You pay" icon={<CreditCard className="h-5 w-5" />}>
             You complete the payment, and my bank notifies me as soon as it lands.

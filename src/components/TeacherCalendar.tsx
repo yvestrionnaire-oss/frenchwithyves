@@ -224,6 +224,9 @@ export function TeacherCalendar({
           </span>
         )}
       </div>
+      <div className="sm:hidden px-3 py-1.5 text-center text-[11px] text-muted-foreground bg-muted/10">
+        ← swipe to see more days →
+      </div>
       <div className="overflow-x-auto">
         <div className="grid min-w-[800px] grid-cols-[80px_repeat(7,1fr)] sticky top-0 z-10 border-b bg-card">
           <div className="p-2 text-xs font-medium text-muted-foreground">Local time</div>
