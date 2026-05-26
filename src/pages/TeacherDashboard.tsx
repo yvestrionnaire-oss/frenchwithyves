@@ -142,7 +142,11 @@ export default function TeacherDashboard() {
         .from("lessons")
         .select("id, student_id, scheduled_at, duration_minutes, lesson_type, status, meet_link")
         .order("scheduled_at"),
-      supabase.from("profiles").select("id, full_name, email"),
+      supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .order("created_at", { ascending: false })
+        .limit(500),
       supabase
         .from("teacher_notifications")
         .select("*")

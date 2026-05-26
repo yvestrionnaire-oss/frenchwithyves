@@ -278,7 +278,7 @@ export default function StudentDashboard() {
               <Link to="/about">About Yves</Link>
             </Button>
             <Button asChild variant="outline" size="sm">
-              <a href="mailto:yvestrionnaire@gmail.com?subject=Question%20from%20your%20student">
+              <a href="mailto:">
                 <Mail className="h-4 w-4" /> Email Yves
               </a>
             </Button>
