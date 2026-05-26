@@ -1,0 +1,1 @@
+ALTER TABLE public.lessons DROP CONSTRAINT IF EXISTS lessons_scheduled_at_key;
