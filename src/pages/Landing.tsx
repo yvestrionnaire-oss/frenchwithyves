@@ -141,7 +141,7 @@ export default function Landing() {
             <h2 className="text-2xl font-bold">A question before booking?</h2>
             <p className="mt-2 text-secondaryText">All communication happens by email. Write to me and I'll get back to you personally.</p>
           </div>
-          <a href="mailto:yvestrionnaire@gmail.com" className="btn-primary"><Mail className="h-4 w-4" /> Email me</a>
+          <a href="mailto:" className="btn-primary"><Mail className="h-4 w-4" /> Email me</a>
         </div>
       </section>
 
