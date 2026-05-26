@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      __cancel_lesson_test_results: {
+        Row: {
+          outcome: string
+          recorded_at: string
+          test_name: string
+        }
+        Insert: {
+          outcome: string
+          recorded_at?: string
+          test_name: string
+        }
+        Update: {
+          outcome?: string
+          recorded_at?: string
+          test_name?: string
+        }
+        Relationships: []
+      }
       availability_overrides: {
         Row: {
           created_at: string
