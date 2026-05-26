@@ -170,7 +170,7 @@ function Header() {
         <nav className="hidden items-center gap-6 text-sm font-semibold text-secondaryText md:flex">
           <a href="#about" className="hover:text-primary">About</a>
           <a href="#how-it-works" className="hover:text-primary">How it works</a>
-          <a href="mailto:yvestrionnaire@gmail.com" className="hover:text-primary">Contact</a>
+          <a href="mailto:" className="hover:text-primary">Contact</a>
         </nav>
         {user ? (
           <Link to={dashboardHref} className="btn-primary !py-2 !text-xs">Go to dashboard</Link>
