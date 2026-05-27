@@ -196,7 +196,7 @@ export default function Book() {
     for (const iso of selection) {
       if (iso === slotKey) continue;
       const os = new Date(iso).getTime();
-      const oe = os + duration * 60_000;
+      const oe = os + durationMin * 60_000;
       if (os < e && oe > s) return true;
     }
     return false;
