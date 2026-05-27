@@ -41,27 +41,6 @@ export type Database = {
         }
         Relationships: []
       }
-      availability_rules: {
-        Row: {
-          created_at: string
-          day_of_week: number
-          id: string
-          slot_time: string
-        }
-        Insert: {
-          created_at?: string
-          day_of_week: number
-          id?: string
-          slot_time: string
-        }
-        Update: {
-          created_at?: string
-          day_of_week?: number
-          id?: string
-          slot_time?: string
-        }
-        Relationships: []
-      }
       lessons: {
         Row: {
           created_at: string
