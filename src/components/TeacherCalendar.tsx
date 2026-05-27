@@ -264,7 +264,7 @@ export function TeacherCalendar({
         </div>
 
         <div className="max-h-[70vh] overflow-y-auto">
-          {halfHourSlots.map(({ hour, minute }) => {
+          {visibleHalfHourSlots.map(({ hour, minute }) => {
             const sample = slotDate(0, hour, minute);
             const isHourMark = minute === 0;
             const labelText = sample.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
