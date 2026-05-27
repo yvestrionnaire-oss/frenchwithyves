@@ -193,6 +193,27 @@ export function TeacherCalendar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [overrides, weekStart, halfHourSlots]);
 
+  const visibleHalfHourSlots = useMemo(() => {
+    const isInteresting = (slot: Date): boolean => {
+      const m = petMinutes(slot);
+      if (m >= PET_START_MIN && m + 30 <= PET_END_MIN) return true;
+      if (overrideCoveringSlot(slot, "open")) return true;
+      if (overrideCoveringSlot(slot, "block")) return true;
+      if (lessonCoversSlot(slot)) return true;
+      if (busyCoversSlot(slot)) return true;
+      return false;
+    };
+    const visible = halfHourSlots.filter(({ hour, minute }) => {
+      for (let day = 0; day < 7; day++) {
+        if (isInteresting(slotDate(day, hour, minute))) return true;
+      }
+      return false;
+    });
+    if (visible.length > 0) return visible;
+    return halfHourSlots.filter(({ hour }) => hour >= 8 && hour < 18);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [halfHourSlots, weekStart, lessons, busy, overrides]);
+
   return (
     <Card className="overflow-hidden">
       <div className="flex items-center justify-between border-b p-3">
@@ -243,7 +264,7 @@ export function TeacherCalendar({
         </div>
 
         <div className="max-h-[70vh] overflow-y-auto">
-          {halfHourSlots.map(({ hour, minute }) => {
+          {visibleHalfHourSlots.map(({ hour, minute }) => {
             const sample = slotDate(0, hour, minute);
             const isHourMark = minute === 0;
             const labelText = sample.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });

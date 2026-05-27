@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { DAYS, addDays, isWithinTeachingHours } from "@/lib/booking";
@@ -35,6 +36,25 @@ export function BookingGrid({
     return d;
   }
 
+  const visibleHalfHourSlots = useMemo(() => {
+    const isInteresting = (slot: Date): boolean => {
+      if (isWithinTeachingHours(slot, 30)) return true;
+      if (isOpenedByOverride?.(slot)) return true;
+      if (isThirtyMinuteCellOccupied(slot)) return true;
+      return false;
+    };
+    const visible = halfHourSlots.filter(({ hour, minute }) => {
+      for (let day = 0; day < 7; day++) {
+        if (isInteresting(slotDate(day, hour, minute))) return true;
+      }
+      return false;
+    });
+    if (visible.length > 0) return visible;
+    return halfHourSlots.filter(({ hour }) => hour >= 8 && hour < 18);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [halfHourSlots, weekStart, isOpenedByOverride, isThirtyMinuteCellOccupied]);
+
+
   return (
     <Card className="overflow-hidden">
       <div className="border-b bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
@@ -65,7 +85,7 @@ export function BookingGrid({
         </div>
 
         <div className="max-h-[70vh] overflow-y-auto">
-          {halfHourSlots.map(({ hour, minute }) => {
+          {visibleHalfHourSlots.map(({ hour, minute }) => {
             const sample = slotDate(0, hour, minute);
             const isHourMark = minute === 0;
             const labelText = sample.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
