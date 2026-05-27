@@ -88,7 +88,11 @@ export function EarningsSection({
     return t >= from.getTime() && t <= to.getTime() + 86_400_000 - 1;
   };
 
-  const projectedWeek = sum((l) => l.status !== "cancelled" && inRange(l.scheduled_at, startOfWeek, endOfWeek));
+  const projectedWeek = sum((l) =>
+    l.status !== "cancelled"
+    && new Date(l.scheduled_at).getTime() >= now.getTime()
+    && inRange(l.scheduled_at, startOfWeek, endOfWeek)
+  );
   const projectedMonth = sum((l) => l.status !== "cancelled" && inRange(l.scheduled_at, now, endOfMonth));
   const projectedYear = sum((l) => l.status !== "cancelled" && inRange(l.scheduled_at, now, endOfYear));
 
