@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { computeLessonValues } from "@/lib/earnings";
 
 type Pkg = { id: string; name: string; price_cents: number; is_free: boolean; credits: number };
 type Request = {
@@ -37,23 +38,13 @@ export function EarningsSection({
   requests: Request[];
   packages: Pkg[];
 }) {
-  const pricePerCredit = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const p of packages) {
-      if (p.is_free || !p.credits) map.set(p.id, 0);
-      else map.set(p.id, p.price_cents / 100 / p.credits);
-    }
-    return map;
-  }, [packages]);
+  const lessonValueMap = useMemo(
+    () => computeLessonValues(lessons, requests, packages),
+    [lessons, requests, packages],
+  );
 
   function lessonValue(l: Lesson): number {
-    if (l.lesson_type === "trial") return 0;
-    const paid = requests
-      .filter((r) => r.student_id === l.student_id && r.status === "paid")
-      .sort((a, b) => (a.paid_at ?? "").localeCompare(b.paid_at ?? ""));
-    const pkgId = paid[paid.length - 1]?.package_id;
-    const v = pkgId ? pricePerCredit.get(pkgId) : undefined;
-    return typeof v === "number" ? v : 20;
+    return lessonValueMap.get(l.id) ?? 0;
   }
 
   const now = new Date();
