@@ -29,6 +29,9 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { LessonsView, type LessonItem, hueFromString } from "@/components/LessonsView";
+import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
+
+const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID as string;
 
 type Lesson = {
   id: string;
@@ -75,7 +78,6 @@ export default function StudentDashboard() {
   const [requests, setRequests] = useState<Request[]>([]);
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
-  const [requesting, setRequesting] = useState<string | null>(null);
   const [cancelTarget, setCancelTarget] = useState<string | null>(null);
   type LessonsFilter = "upcoming" | "completed";
   const [lessonsFilter, setLessonsFilter] = useState<LessonsFilter>(() => {
@@ -125,26 +127,6 @@ export default function StudentDashboard() {
     setRequests((r.data ?? []) as Request[]);
     setProposals((prop.data ?? []) as Proposal[]);
     setLoading(false);
-  }
-
-  async function requestPackage(pkg: Pkg, silent = false) {
-    setRequesting(pkg.id);
-    const { error } = await supabase.rpc("request_package", { _package_id: pkg.id, _notes: null });
-    setRequesting(null);
-    if (error) {
-      const msg = error.message?.includes("Trial already requested")
-        ? "You've already requested a trial — check the status above."
-        : error.message;
-      if (!silent) toast({ title: "Request failed", description: msg, variant: "destructive" });
-      return;
-    }
-    toast({
-      title: pkg.is_free ? "Trial requested" : "Package requested",
-      description: pkg.is_free
-        ? "Yves will email you to confirm. You'll be able to book once approved."
-        : "Yves will email you a payment link shortly.",
-    });
-    await loadAll();
   }
 
   async function cancelRequest(id: string) {
@@ -267,6 +249,7 @@ export default function StudentDashboard() {
   }, [lessons, lessonsFilter]);
 
   return (
+    <PayPalScriptProvider options={{ clientId: PAYPAL_CLIENT_ID, currency: "USD" }}>
     <div className="min-h-dvh bg-background">
       <header className="border-b">
         <div className="container mx-auto flex items-center justify-between px-4 py-4">
@@ -459,39 +442,13 @@ export default function StudentDashboard() {
 
         {/* Packages */}
         <section>
-          <h2 className="mb-3 text-xl font-semibold">Request a package</h2>
+          <h2 className="mb-3 text-xl font-semibold">Buy lesson credits</h2>
           <p className="mb-4 text-sm text-muted-foreground">
-            Pick a package — Yves will email you a payment link, and once payment is confirmed,
-            your lessons appear here so you can book your slots.
+            Pay securely with PayPal — your lessons are added to your account instantly.
           </p>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
             {visiblePackages.map((pkg) => (
-              <Card key={pkg.id} className={pkg.is_recommended ? "border-primary" : ""}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <CardTitle className="text-base">{pkg.name}</CardTitle>
-                    {pkg.is_recommended && <Badge>Popular</Badge>}
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="text-2xl font-semibold">
-                    ${(pkg.price_cents / 100).toFixed(0)}
-                  </div>
-                  <p className="text-xs text-muted-foreground">{pkg.description}</p>
-                  <Button
-                    className="w-full"
-                    variant={pkg.is_recommended ? "default" : "outline"}
-                    disabled={requesting === pkg.id}
-                    onClick={() => requestPackage(pkg)}
-                  >
-                    {requesting === pkg.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <><CreditCard className="h-4 w-4" /> Request package</>
-                    )}
-                  </Button>
-                </CardContent>
-              </Card>
+              <PackagePayCard key={pkg.id} pkg={pkg} onPaid={loadAll} />
             ))}
           </div>
         </section>
@@ -514,6 +471,73 @@ export default function StudentDashboard() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </PayPalScriptProvider>
+  );
+}
+
+function PackagePayCard({ pkg, onPaid }: { pkg: Pkg; onPaid: () => void | Promise<void> }) {
+  const [purchasing, setPurchasing] = useState(false);
+  const [paid, setPaid] = useState(false);
+
+  async function createOrder() {
+    const { data, error } = await supabase.functions.invoke("paypal-create-order", {
+      body: { packageSlug: pkg.slug },
+    });
+    if (error || data?.error) throw new Error(data?.error ?? error?.message ?? "Failed to create order");
+    return data.orderId as string;
+  }
+
+  async function onApprove(data: { orderID: string }) {
+    setPurchasing(true);
+    try {
+      const { data: result, error } = await supabase.functions.invoke("paypal-capture-order", {
+        body: { orderId: data.orderID, packageSlug: pkg.slug },
+      });
+      if (error || result?.error) {
+        toast({ title: "Payment failed", description: result?.error ?? error?.message, variant: "destructive" });
+        return;
+      }
+      setPaid(true);
+      toast({
+        title: "Payment successful! 🎉",
+        description: `${pkg.credits} lesson${pkg.credits > 1 ? "s" : ""} added to your account.`,
+      });
+      setTimeout(() => void onPaid(), 1500);
+    } finally {
+      setPurchasing(false);
+    }
+  }
+
+  return (
+    <Card className={pkg.is_recommended ? "border-primary" : ""}>
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <CardTitle className="text-base">{pkg.name}</CardTitle>
+          {pkg.is_recommended && <Badge>Popular</Badge>}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="text-2xl font-semibold">${(pkg.price_cents / 100).toFixed(0)}</div>
+        <p className="text-xs text-muted-foreground">{pkg.description}</p>
+        {paid ? (
+          <div className="rounded-md bg-emerald-50 p-2 text-center text-sm font-semibold text-emerald-700">
+            ✓ Added to your account
+          </div>
+        ) : (
+          <div className={purchasing ? "pointer-events-none opacity-60" : ""}>
+            <PayPalButtons
+              style={{ layout: "vertical", label: "pay", height: 40 }}
+              createOrder={createOrder}
+              onApprove={onApprove}
+              onError={(err) => {
+                console.error("PayPal error", err);
+                toast({ title: "PayPal error", description: "Something went wrong. Please try again.", variant: "destructive" });
+              }}
+            />
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
