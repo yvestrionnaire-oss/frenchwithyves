@@ -147,7 +147,7 @@ export default function Landing() {
               <h2 className="text-2xl font-bold">A question before booking?</h2>
               <p className="mt-2 text-secondaryText">All communication happens by email. Write to me and I'll get back to you personally.</p>
             </div>
-            <a href="mailto:" className="btn-primary"><Mail className="h-4 w-4" /> Email me</a>
+            <a href="mailto:yvestrionnaire@gmail.com?subject=Question%20about%20French%20lessons" className="btn-primary"><Mail className="h-4 w-4" /> Email me</a>
           </div>
         </section>
 
@@ -177,7 +177,7 @@ function Header() {
         <nav className="hidden items-center gap-6 text-sm font-semibold text-secondaryText md:flex">
           <a href="#about" className="hover:text-primary">About</a>
           <a href="#how-it-works" className="hover:text-primary">How it works</a>
-          <a href="mailto:" className="hover:text-primary">Contact</a>
+          <a href="mailto:yvestrionnaire@gmail.com?subject=Question%20about%20French%20lessons" className="hover:text-primary">Contact</a>
         </nav>
         {user ? (
           <Link to={dashboardHref} className="btn-primary !py-2 !text-xs">Go to dashboard</Link>
