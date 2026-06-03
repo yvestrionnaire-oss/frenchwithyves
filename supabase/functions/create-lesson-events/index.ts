@@ -2,13 +2,16 @@
 // for each lesson, then stores meet_link + google_event_id back on the lesson row.
 // Reads student email from the profiles table.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import {
+  getGoogleAccessToken,
+  googleCalendarFetch,
+  googleConfigured,
+} from "../_shared/google-calendar.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_calendar/calendar/v3";
 
 interface RequestBody {
   lessonIds: string[];
@@ -18,13 +21,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const GOOGLE_CALENDAR_API_KEY = Deno.env.get("GOOGLE_CALENDAR_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
-    if (!GOOGLE_CALENDAR_API_KEY) throw new Error("GOOGLE_CALENDAR_API_KEY is not configured");
+    if (!googleConfigured()) throw new Error("Google Calendar is not configured");
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase env not configured");
 
     const body = (await req.json()) as RequestBody;
@@ -98,6 +98,8 @@ Deno.serve(async (req) => {
 
     const results: Array<{ lessonId: string; meetLink: string | null; eventId: string | null; error?: string; skipped?: boolean }> = [];
 
+    const accessToken = await getGoogleAccessToken();
+
     for (const lesson of lessons) {
       if (lesson.google_event_id) {
         console.log("create-lesson-events: lesson", lesson.id, "already has event", lesson.google_event_id, "— skipping");
@@ -128,15 +130,11 @@ Deno.serve(async (req) => {
       };
 
       try {
-        const resp = await fetch(
-          `${GATEWAY_URL}/calendars/primary/events?conferenceDataVersion=1&sendUpdates=all`,
+        const resp = await googleCalendarFetch(
+          accessToken,
+          `/calendars/primary/events?conferenceDataVersion=1&sendUpdates=all`,
           {
             method: "POST",
-            headers: {
-              Authorization: `Bearer ${LOVABLE_API_KEY}`,
-              "X-Connection-Api-Key": GOOGLE_CALENDAR_API_KEY,
-              "Content-Type": "application/json",
-            },
             body: JSON.stringify(eventBody),
           },
         );

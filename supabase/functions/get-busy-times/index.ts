@@ -16,12 +16,16 @@
 //      the user getting a clear "try again" error. Errors return non-2xx so
 //      the booking layer refuses to write the row.
 
+import {
+  getGoogleAccessToken,
+  googleCalendarFetch,
+  googleConfigured,
+} from "../_shared/google-calendar.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_calendar/calendar/v3";
 
 type BusyRange = { start: string; end: string };
 
@@ -53,19 +57,12 @@ function jsonResponse(body: unknown, status = 200) {
  *   that flag matches user expectation).
  * - Falls back to ["primary"] only if the calendar list is unexpectedly empty.
  */
-async function listCalendarIds(
-  lovableApiKey: string,
-  googleApiKey: string,
-): Promise<string[]> {
-  const url = `${GATEWAY_URL}/users/me/calendarList?showHidden=false&minAccessRole=freeBusyReader`;
-  const resp = await fetch(url, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${lovableApiKey}`,
-      "X-Connection-Api-Key": googleApiKey,
-      "Content-Type": "application/json",
-    },
-  });
+async function listCalendarIds(accessToken: string): Promise<string[]> {
+  const resp = await googleCalendarFetch(
+    accessToken,
+    `/users/me/calendarList?showHidden=false&minAccessRole=freeBusyReader`,
+    { method: "GET" },
+  );
   if (!resp.ok) {
     const detail = await resp.text().catch(() => "");
     throw new Error(`calendarList.list ${resp.status}: ${detail.slice(0, 200)}`);
@@ -90,8 +87,7 @@ async function listCalendarIds(
  * better than fail-open. If EVERY calendar errored, we throw.
  */
 async function fetchBusyRanges(
-  lovableApiKey: string,
-  googleApiKey: string,
+  accessToken: string,
   calendarIds: string[],
   from: string,
   to: string,
@@ -105,13 +101,8 @@ async function fetchBusyRanges(
 
   for (let i = 0; i < calendarIds.length; i += BATCH) {
     const batch = calendarIds.slice(i, i + BATCH);
-    const resp = await fetch(`${GATEWAY_URL}/freeBusy`, {
+    const resp = await googleCalendarFetch(accessToken, `/freeBusy`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${lovableApiKey}`,
-        "X-Connection-Api-Key": googleApiKey,
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({
         timeMin: from,
         timeMax: to,
@@ -189,9 +180,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const GOOGLE_CALENDAR_API_KEY = Deno.env.get("GOOGLE_CALENDAR_API_KEY");
-    if (!LOVABLE_API_KEY || !GOOGLE_CALENDAR_API_KEY) {
+    if (!googleConfigured()) {
       // Connector intentionally unconfigured: this is the only case where
       // we degrade gracefully — there is no Google account linked, so we
       // truly have nothing to report. Frontend treats this as "no Google
@@ -215,21 +204,14 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "from/to required" }, 400);
     }
 
-    const calendarIds = await listCalendarIds(
-      LOVABLE_API_KEY,
-      GOOGLE_CALENDAR_API_KEY,
-    );
+    const accessToken = await getGoogleAccessToken();
+
+    const calendarIds = await listCalendarIds(accessToken);
     console.log(
       `get-busy-times: querying ${calendarIds.length} calendar(s) [${from} → ${to}]`,
     );
 
-    const busy = await fetchBusyRanges(
-      LOVABLE_API_KEY,
-      GOOGLE_CALENDAR_API_KEY,
-      calendarIds,
-      from,
-      to,
-    );
+    const busy = await fetchBusyRanges(accessToken, calendarIds, from, to);
     console.log(
       `get-busy-times: returning ${busy.length} busy range(s) across ${calendarIds.length} calendar(s)`,
     );
