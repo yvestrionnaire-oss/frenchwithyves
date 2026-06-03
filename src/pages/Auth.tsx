@@ -10,6 +10,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Seo } from "@/components/Seo";
 
+// Base URL used for auth email links (confirmation, password reset).
+// Always the production site in production builds, so links never point at
+// localhost or a preview/backup origin. Falls back to the current origin only
+// during local development (localhost), where that is what we want.
+const AUTH_REDIRECT_BASE =
+  typeof window !== "undefined" && window.location.hostname === "localhost"
+    ? window.location.origin
+    : "https://www.frenchwithyves.com";
+
 export default function Auth() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -37,7 +46,7 @@ export default function Auth() {
 
     try {
       if (mode === "signup") {
-        const redirectUrl = `${window.location.origin}/`;
+        const redirectUrl = `${AUTH_REDIRECT_BASE}/`;
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -58,7 +67,7 @@ export default function Auth() {
       } else {
         // forgot password
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/reset-password`,
+          redirectTo: `${AUTH_REDIRECT_BASE}/reset-password`,
         });
         if (error) throw error;
         toast({
