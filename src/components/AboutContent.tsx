@@ -1,4 +1,4 @@
-import { BookOpen, CalendarDays, CheckCircle, CreditCard, Mail, Send, Star, Wallet } from "lucide-react";
+import { BookOpen, CalendarDays, CheckCircle, CreditCard, Star, Wallet } from "lucide-react";
 import portrait from "@/assets/yves-trionnaire-real.jpg";
 import { ProfileTabs, StatsGrid, StepCard } from "@/components/sections/ProfileSections";
 
@@ -51,23 +51,23 @@ export default function AboutContent() {
       <section>
         <h2 className="section-title mb-7 text-center">How booking & payment works</h2>
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          <StepCard n="1" title="Choose a package" icon={<BookOpen className="h-5 w-5" />}>
-            Sign up, then pick the package that fits your goals — single lesson, 5, 10 or 20.
+          <StepCard n="1" title="Create your account" icon={<Star className="h-5 w-5" />}>
+            Sign up in 30 seconds with your email address.
           </StepCard>
-          <StepCard n="2" title="Yves gets a notification" icon={<Mail className="h-5 w-5" />}>
-            Your request appears in my dashboard the moment you submit it.
+          <StepCard n="2" title="Choose a package" icon={<BookOpen className="h-5 w-5" />}>
+            Pick the package that fits your goals — single lesson, 5, 10 or 20.
           </StepCard>
-          <StepCard n="3" title="Payment link by email" icon={<Send className="h-5 w-5" />}>
-            I personally email you a secure payment link from my email address.
+          <StepCard n="3" title="Pay securely with PayPal" icon={<CreditCard className="h-5 w-5" />}>
+            Click "Pay with PayPal" and complete checkout in seconds — use your card or PayPal balance.
           </StepCard>
-          <StepCard n="4" title="You pay" icon={<CreditCard className="h-5 w-5" />}>
-            You complete the payment, and my bank notifies me as soon as it lands.
+          <StepCard n="4" title="Lessons appear instantly" icon={<Wallet className="h-5 w-5" />}>
+            Your credits are added automatically the moment payment clears — no waiting, no email back-and-forth.
           </StepCard>
-          <StepCard n="5" title="I confirm your lessons" icon={<Wallet className="h-5 w-5" />}>
-            I confirm payment in your dashboard — your lessons appear on your account immediately.
-          </StepCard>
-          <StepCard n="6" title="Book your slots" icon={<CalendarDays className="h-5 w-5" />}>
+          <StepCard n="5" title="Book your slots" icon={<CalendarDays className="h-5 w-5" />}>
             The calendar unlocks. Pick any open time — a <strong>Google Meet</strong> invite is sent for each lesson.
+          </StepCard>
+          <StepCard n="6" title="Start learning" icon={<CheckCircle className="h-5 w-5" />}>
+            Join the call and start speaking French from your very first lesson.
           </StepCard>
         </div>
         <p className="mx-auto mt-8 max-w-2xl text-center text-sm text-secondaryText">

@@ -10,7 +10,6 @@ import {
   Mail,
   MinusCircle,
   PlusCircle,
-  Send,
   Users,
   X,
 } from "lucide-react";
@@ -443,19 +442,12 @@ export default function TeacherDashboard() {
                               </Button>
                             ) : (
                               <>
-                                {r.status === "pending" && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    disabled={busy === r.id}
-                                    onClick={() => action("mark_payment_link_sent", r.id)}
-                                  >
-                                    <Send className="h-4 w-4" /> Link sent
-                                  </Button>
-                                )}
+                                {/* Students normally pay via PayPal (auto-granted). This
+                                    "Paid" button is a manual fallback for off-PayPal
+                                    payments (cash, bank transfer, etc.). */}
                                 {r.status === "payment_link_sent" && <Badge variant="outline" className="text-[10px]">Link sent ✓</Badge>}
                                 <Button size="sm" disabled={busy === r.id} onClick={() => action("confirm_paid", r.id)}>
-                                  <CheckCircle2 className="h-4 w-4" /> Paid
+                                  <CheckCircle2 className="h-4 w-4" /> Mark paid
                                 </Button>
                               </>
                             )}

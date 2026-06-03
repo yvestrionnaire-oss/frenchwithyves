@@ -108,7 +108,7 @@ export default function Auth() {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {mode === "signup"
-              ? "Sign up to request a lesson package and book your slots."
+              ? "Sign up, buy a lesson package with PayPal, and book your slots."
               : mode === "signin"
                 ? "Welcome back. Sign in to view your dashboard."
                 : "Enter your email and we'll send you a link to set a new password."}
