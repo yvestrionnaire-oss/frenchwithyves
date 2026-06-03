@@ -344,12 +344,25 @@ export default function Book() {
     }
     const lessonIds = (booked?.lessonIds as string[] | undefined) ?? [];
 
+    let meetWarning = false;
     if (lessonIds.length > 0) {
-      await supabase.functions.invoke("create-lesson-events", { body: { lessonIds } });
+      const { data: evt, error: evtErr } = await supabase.functions.invoke(
+        "create-lesson-events",
+        { body: { lessonIds } },
+      );
+      // The lesson is booked regardless; only the calendar/Meet step may fail.
+      // Surface a soft warning rather than a hard error so the student isn't
+      // told the booking failed when it didn't.
+      if (evtErr || evt?.error) {
+        console.error("create-lesson-events failed:", evt?.error ?? evtErr);
+        meetWarning = true;
+      }
     }
     toast({
       title: lessonIds.length > 1 ? `${lessonIds.length} lessons booked!` : "Lesson booked!",
-      description: "A Google Meet invite is on its way.",
+      description: meetWarning
+        ? "Your lesson is booked. The Google Meet link is still being set up — it'll appear shortly."
+        : "A Google Meet invite is on its way.",
     });
     setSubmitting(false);
     navigate("/student");

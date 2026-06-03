@@ -171,9 +171,17 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
+    // Surface the real cause (Supabase/Postgres errors are plain objects, not
+    // Error instances, so stringify them rather than collapsing to "Unknown").
     console.error("create-lesson-events error:", error);
+    const detail =
+      error instanceof Error
+        ? error.message
+        : typeof error === "object"
+        ? JSON.stringify(error)
+        : String(error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: detail || "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
