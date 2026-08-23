@@ -279,11 +279,14 @@ export default function TeacherDashboard() {
         </div>
 
         {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Stat icon={<Users />} value={students.length} label="Students" />
-          <Stat icon={<Mail />} value={pendingRequests.length} label="Pending requests" highlight={pendingRequests.length > 0} />
-          <Stat icon={<CalendarDays />} value={upcoming.length} label="Upcoming lessons" />
-          <Stat icon={<Bell />} value={notifications.filter((n) => !n.read_at).length} label="New notifications" highlight={notifications.some((n) => !n.read_at)} />
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
+          <div className="h-1.5 bg-primary" />
+          <div className="grid gap-px bg-border sm:grid-cols-2 md:grid-cols-4">
+            <Stat icon={<Users />} value={students.length} label="Students" />
+            <Stat icon={<Mail />} value={pendingRequests.length} label="Pending requests" highlight={pendingRequests.length > 0} />
+            <Stat icon={<CalendarDays />} value={upcoming.length} label="Upcoming lessons" />
+            <Stat icon={<Bell />} value={notifications.filter((n) => !n.read_at).length} label="New notifications" highlight={notifications.some((n) => !n.read_at)} />
+          </div>
         </div>
 
         {/* Upcoming lessons (left) + Recent activity (right) */}
@@ -473,36 +476,74 @@ export default function TeacherDashboard() {
           </aside>
         </section>
 
-        {/* Weekly schedule */}
-        <section>
-          <h2 className="mb-3 text-xl font-semibold">Weekly schedule</h2>
-          <p className="mb-3 text-sm text-muted-foreground">
-            Set the times you're available to teach each week. Your availability repeats every week — students can only book inside it. Booked lessons appear in blue.
-          </p>
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <Button
-              size="sm"
-              variant={calendarMode === "add" ? "default" : "outline"}
-              onClick={() => setCalendarMode((m) => (m === "add" ? "idle" : "add"))}
-              className={cn(calendarMode === "add" && "bg-emerald-600 hover:bg-emerald-700 text-white")}
-            >
-              <PlusCircle className="h-4 w-4" /> Add Time
-            </Button>
-            <Button
-              size="sm"
-              variant={calendarMode === "remove" ? "default" : "outline"}
-              onClick={() => setCalendarMode((m) => (m === "remove" ? "idle" : "remove"))}
-              className={cn(calendarMode === "remove" && "bg-destructive hover:bg-destructive/90 text-destructive-foreground")}
-            >
-              <MinusCircle className="h-4 w-4" /> Remove Time
-            </Button>
-            {calendarMode !== "idle" && (
-              <Button size="sm" variant="ghost" onClick={() => setCalendarMode("idle")}>
-                Done
+        {/* Weekly schedule (left) + Students (right sidebar) */}
+        <section className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <h2 className="mb-3 text-xl font-semibold">Weekly schedule</h2>
+            <p className="mb-3 text-sm text-muted-foreground">
+              Set the times you're available to teach each week. Your availability repeats every week — students can only book inside it. Booked lessons appear in blue.
+            </p>
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                variant={calendarMode === "add" ? "default" : "outline"}
+                onClick={() => setCalendarMode((m) => (m === "add" ? "idle" : "add"))}
+                className={cn(calendarMode === "add" && "bg-emerald-600 hover:bg-emerald-700 text-white")}
+              >
+                <PlusCircle className="h-4 w-4" /> Add Time
               </Button>
-            )}
+              <Button
+                size="sm"
+                variant={calendarMode === "remove" ? "default" : "outline"}
+                onClick={() => setCalendarMode((m) => (m === "remove" ? "idle" : "remove"))}
+                className={cn(calendarMode === "remove" && "bg-destructive hover:bg-destructive/90 text-destructive-foreground")}
+              >
+                <MinusCircle className="h-4 w-4" /> Remove Time
+              </Button>
+              {calendarMode !== "idle" && (
+                <Button size="sm" variant="ghost" onClick={() => setCalendarMode("idle")}>
+                  Done
+                </Button>
+              )}
+            </div>
+            <TeacherCalendar profiles={profiles} mode={calendarMode} />
           </div>
-          <TeacherCalendar profiles={profiles} mode={calendarMode} />
+
+          {/* Students sidebar */}
+          <aside className="lg:col-span-1">
+            <h2 className="mb-3 flex items-center gap-2 text-xl font-semibold">
+              <Users className="h-5 w-5 text-primary" /> Students
+            </h2>
+            {students.length === 0 ? (
+              <Card>
+                <CardContent className="py-8 text-center text-sm text-muted-foreground">No students yet.</CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="p-0">
+                  <div className="divide-y">
+                    {students.map((s) => (
+                      <div key={s.id} className="flex flex-col gap-2 p-4">
+                        <div className="min-w-0">
+                          <div className="truncate font-medium">{s.full_name ?? "—"}</div>
+                          <button
+                            onClick={() => copyEmail(s.email)}
+                            className="inline-flex max-w-full items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            <Copy className="h-3 w-3 shrink-0" /> <span className="truncate">{s.email}</span>
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <Badge variant="secondary">{s.credits} credits</Badge>
+                          <span className="text-muted-foreground">{s.lessonsCount} done</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </aside>
         </section>
 
         <TeacherRescheduleDialog
@@ -519,40 +560,6 @@ export default function TeacherDashboard() {
           onSent={loadAll}
         />
 
-
-        {/* Students */}
-        <section>
-          <h2 className="mb-3 text-xl font-semibold">Students</h2>
-          {students.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">No students yet.</CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardContent className="p-0">
-                <div className="divide-y">
-                  {students.map((s) => (
-                    <div key={s.id} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <div className="font-medium">{s.full_name ?? "—"}</div>
-                        <button
-                          onClick={() => copyEmail(s.email)}
-                          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-                        >
-                          <Copy className="h-3 w-3" /> {s.email}
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-3 text-sm">
-                        <Badge variant="secondary">{s.credits} credits</Badge>
-                        <span className="text-muted-foreground">{s.lessonsCount} done</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </section>
 
         {/* Earnings (bottom) */}
         <EarningsSection lessons={lessons} requests={requests} packages={packages} />
@@ -590,28 +597,20 @@ function Stat({
   highlight?: boolean;
 }) {
   return (
-    <Card
-      className={
-        highlight
-          ? "border-primary/40 bg-primary/5 shadow-sm"
-          : "border-border transition hover:border-primary/30 hover:shadow-sm"
-      }
-    >
-      <CardContent className="flex items-center gap-4 p-6">
-        <div
-          className={
-            "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl " +
-            (highlight ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary")
-          }
-        >
-          {icon}
-        </div>
-        <div>
-          <div className="text-3xl font-bold tracking-tight text-foreground">{value}</div>
-          <div className="text-sm font-medium text-secondaryText">{label}</div>
-        </div>
-      </CardContent>
-    </Card>
+    <div className={"flex items-center gap-4 p-6 transition " + (highlight ? "bg-primary/5" : "bg-card hover:bg-muted/40")}>
+      <div
+        className={
+          "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl " +
+          (highlight ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary")
+        }
+      >
+        {icon}
+      </div>
+      <div>
+        <div className="text-3xl font-bold tracking-tight text-foreground">{value}</div>
+        <div className="text-sm font-medium text-secondaryText">{label}</div>
+      </div>
+    </div>
   );
 }
 
