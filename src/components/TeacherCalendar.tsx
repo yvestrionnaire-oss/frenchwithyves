@@ -17,9 +17,9 @@ const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 // Column order left→right is Mon..Sun; map to JS getDay() (0=Sun..6=Sat).
 const COL_TO_WEEKDAY = [1, 2, 3, 4, 5, 6, 0];
 
-// Grid rows: 6:00am → 9:00pm Peru time, 30-min slots.
-const GRID_START_MIN = 6 * 60; // 360
-const GRID_END_MIN = 21 * 60; // 1260
+// Grid rows: full day, midnight → midnight Peru time, 30-min slots.
+const GRID_START_MIN = 0; // 12:00 AM
+const GRID_END_MIN = 24 * 60; // 12:00 AM next day (1440)
 
 type Lesson = {
   id: string;
