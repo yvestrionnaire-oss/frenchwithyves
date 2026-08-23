@@ -31,10 +31,10 @@ export function StepCard({ n, title, icon, children }: { n: string; title: strin
 export function StatsGrid() {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <StatCard icon={<BookOpen className="h-5 w-5" />} value="8,537" label="Lessons taught" />
+      <StatCard icon={<BookOpen className="h-5 w-5" />} value="9,203" label="Lessons taught" />
       <StatCard icon={<Star className="h-5 w-5" />} value="5.0 / 5.0" label="Average rating" />
       <StatCard icon={<Target className="h-5 w-5" />} value="9+ years" label="Teaching experience" />
-      <StatCard icon={<Users className="h-5 w-5" />} value="22.6" label="Lessons per student" />
+      <StatCard icon={<Users className="h-5 w-5" />} value="521" label="Students taught" />
     </div>
   );
 }

@@ -14,7 +14,7 @@ export default function About() {
     <div className="min-h-dvh bg-background">
       <Seo
         title="About Yves Trionnaire — DAEFLE Certified French Teacher"
-        description="Meet Yves, your DAEFLE certified native French teacher. 9+ years teaching, 5.0 rating from 8,500+ lessons. Learn his method, background, and student reviews."
+        description="Meet Yves, your DAEFLE certified native French teacher. 9+ years teaching, 5.0 rating from 9,000+ lessons. Learn his method, background, and student reviews."
         path="/about"
       />
       <header className="border-b">

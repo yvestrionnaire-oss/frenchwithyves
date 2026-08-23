@@ -22,7 +22,7 @@ export default function AboutContent() {
             A short introduction to who Yves is, how he teaches, and what to expect from your lessons.
           </p>
           <p className="mt-6 flex items-center gap-2 text-sm text-secondaryText">
-            <Star className="h-4 w-4 fill-primary text-primary" /> 5.0 average rating · 8,500+ lessons taught · 9+ years teaching
+            <Star className="h-4 w-4 fill-primary text-primary" /> 5.0 average rating · 9,000+ lessons taught · 9+ years teaching
           </p>
         </div>
         <div className="relative">

@@ -23,7 +23,7 @@ export default function Landing() {
       <main>
         <Seo
           title="Yves Trionnaire — Private French Lessons Online"
-          description="Book private online French lessons with Yves Trionnaire, DAEFLE certified native French teacher. 5.0 rating, 8,500+ lessons taught."
+          description="Book private online French lessons with Yves Trionnaire, DAEFLE certified native French teacher. 5.0 rating, 9,000+ lessons taught."
           path="/"
         />
         <Header />
@@ -60,7 +60,7 @@ export default function Landing() {
               </div>
               <div className="fw-card pointer-events-auto flex items-center gap-3 px-4 py-3">
                 <BookOpen className="h-5 w-5 text-primary" />
-                <div><strong className="block leading-none">8,537</strong><p className="text-xs text-secondaryText">Lessons taught</p></div>
+                <div><strong className="block leading-none">9,203</strong><p className="text-xs text-secondaryText">Lessons taught</p></div>
               </div>
             </div>
           </div>
