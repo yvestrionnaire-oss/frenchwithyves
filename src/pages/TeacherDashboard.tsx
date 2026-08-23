@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import portrait from "@/assets/yves-trionnaire-real.jpg";
 import {
   Bell,
   CalendarDays,
@@ -254,7 +255,6 @@ export default function TeacherDashboard() {
 
   return (
     <div className="min-h-dvh bg-background">
-      <div className="h-1 bg-primary" />
       <header className="border-b bg-card">
         <div className="container mx-auto flex items-center justify-between px-4 py-4">
           <Link to="/" className="flex items-center gap-2 text-lg font-semibold tracking-tight">
@@ -270,23 +270,36 @@ export default function TeacherDashboard() {
         </div>
       </header>
 
-      <main className="container mx-auto max-w-6xl px-4 py-8 space-y-8">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Teacher dashboard</h1>
-          <p className="mt-1 text-muted-foreground">
-            Approve requests, confirm payments, and view all upcoming lessons.
-          </p>
-        </div>
-
-        {/* Stats */}
-        <div className="overflow-hidden rounded-xl border border-border bg-card">
-          <div className="h-1.5 bg-primary" />
-          <div className="grid gap-px bg-border sm:grid-cols-2 md:grid-cols-4">
-            <Stat icon={<Users />} value={students.length} label="Students" />
-            <Stat icon={<Mail />} value={pendingRequests.length} label="Pending requests" highlight={pendingRequests.length > 0} />
-            <Stat icon={<CalendarDays />} value={upcoming.length} label="Upcoming lessons" />
-            <Stat icon={<Bell />} value={notifications.filter((n) => !n.read_at).length} label="New notifications" highlight={notifications.some((n) => !n.read_at)} />
+      {/* Full-width green banner */}
+      <div className="bg-primary text-primary-foreground">
+        <div className="container mx-auto flex flex-col gap-4 px-4 py-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <img
+              src={portrait}
+              alt="Yves Trionnaire"
+              className="h-16 w-16 rounded-2xl object-cover ring-2 ring-white/40"
+            />
+            <div>
+              <div className="text-2xl font-bold tracking-tight">Yves</div>
+              <div className="text-sm text-primary-foreground/80">Teacher dashboard</div>
+            </div>
           </div>
+          <a
+            href="#weekly-schedule"
+            className="inline-flex items-center gap-2 self-start rounded-lg border-2 border-white/70 px-5 py-2.5 text-sm font-semibold transition hover:bg-white/15 sm:self-auto"
+          >
+            <CalendarDays className="h-4 w-4" /> Weekly Schedule
+          </a>
+        </div>
+      </div>
+
+      <main className="container mx-auto max-w-6xl px-4 py-8 space-y-8">
+        {/* Stats */}
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+          <Stat icon={<Users />} value={students.length} label="Students" />
+          <Stat icon={<Mail />} value={pendingRequests.length} label="Pending requests" highlight={pendingRequests.length > 0} />
+          <Stat icon={<CalendarDays />} value={upcoming.length} label="Upcoming lessons" />
+          <Stat icon={<Bell />} value={notifications.filter((n) => !n.read_at).length} label="New notifications" highlight={notifications.some((n) => !n.read_at)} />
         </div>
 
         {/* Upcoming lessons (left) + Recent activity (right) */}
@@ -477,7 +490,7 @@ export default function TeacherDashboard() {
         </section>
 
         {/* Weekly schedule (left) + Students (right sidebar) */}
-        <section className="grid gap-6 lg:grid-cols-3">
+        <section id="weekly-schedule" className="scroll-mt-4 grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <h2 className="mb-3 text-xl font-semibold">Weekly schedule</h2>
             <p className="mb-3 text-sm text-muted-foreground">
@@ -597,20 +610,28 @@ function Stat({
   highlight?: boolean;
 }) {
   return (
-    <div className={"flex items-center gap-4 p-6 transition " + (highlight ? "bg-primary/5" : "bg-card hover:bg-muted/40")}>
-      <div
-        className={
-          "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl " +
-          (highlight ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary")
-        }
-      >
-        {icon}
-      </div>
-      <div>
-        <div className="text-3xl font-bold tracking-tight text-foreground">{value}</div>
-        <div className="text-sm font-medium text-secondaryText">{label}</div>
-      </div>
-    </div>
+    <Card
+      className={
+        highlight
+          ? "border-primary/40 bg-primary/5 shadow-sm"
+          : "border-border transition hover:border-primary/30 hover:shadow-sm"
+      }
+    >
+      <CardContent className="flex items-center gap-4 p-6">
+        <div
+          className={
+            "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl " +
+            (highlight ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary")
+          }
+        >
+          {icon}
+        </div>
+        <div>
+          <div className="text-3xl font-bold tracking-tight text-foreground">{value}</div>
+          <div className="text-sm font-medium text-secondaryText">{label}</div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
