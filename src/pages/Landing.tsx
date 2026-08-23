@@ -184,17 +184,17 @@ function Header() {
             <div className="text-xs text-primary-foreground/80">Native French teacher</div>
           </div>
         </a>
-        <nav className="hidden items-center gap-6 text-sm font-semibold text-primary-foreground/90 md:flex">
-          <a href="#about" className="transition hover:text-white">About</a>
-          <a href="#how-it-works" className="transition hover:text-white">How it works</a>
-          <a href="mailto:yvestrionnaire@gmail.com?subject=Question%20about%20French%20lessons" className="transition hover:text-white">Contact</a>
+        <nav className="hidden items-center gap-6 text-sm font-bold text-white md:flex">
+          <a href="#about" className="transition hover:text-white/80">About</a>
+          <a href="#how-it-works" className="transition hover:text-white/80">How it works</a>
+          <a href="mailto:yvestrionnaire@gmail.com?subject=Question%20about%20French%20lessons" className="transition hover:text-white/80">Contact</a>
         </nav>
         {user ? (
-          <Link to={dashboardHref} className="rounded-md bg-white px-4 py-2 text-xs font-semibold text-primary transition hover:bg-white/90">Go to dashboard</Link>
+          <Link to={dashboardHref} className="rounded-md bg-white px-4 py-2 text-xs font-bold text-primary transition hover:bg-white/90">Go to dashboard</Link>
         ) : (
           <div className="flex items-center gap-3">
-            <Link to="/auth?mode=signin" className="text-sm font-semibold text-primary-foreground/90 transition hover:text-white">Sign in</Link>
-            <Link to="/auth" className="rounded-md bg-white px-4 py-2 text-xs font-semibold text-primary transition hover:bg-white/90">Sign up</Link>
+            <Link to="/auth?mode=signin" className="text-sm font-bold text-white transition hover:text-white/80">Sign in</Link>
+            <Link to="/auth" className="rounded-md bg-white px-4 py-2 text-xs font-bold text-primary transition hover:bg-white/90">Sign up</Link>
           </div>
         )}
       </div>
