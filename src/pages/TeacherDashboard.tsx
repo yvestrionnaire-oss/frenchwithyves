@@ -270,26 +270,28 @@ export default function TeacherDashboard() {
         </div>
       </header>
 
-      {/* Full-width green banner */}
-      <div className="bg-primary text-primary-foreground">
-        <div className="container mx-auto flex flex-col gap-4 px-4 py-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <img
-              src={portrait}
-              alt="Yves Trionnaire"
-              className="h-16 w-16 rounded-2xl object-cover ring-2 ring-white/40"
-            />
-            <div>
-              <div className="text-2xl font-bold tracking-tight">Yves</div>
-              <div className="text-sm text-primary-foreground/80">Teacher dashboard</div>
-            </div>
+      {/* Full-width green banner with layered wave nuances */}
+      <div className="relative overflow-hidden bg-primary text-primary-foreground">
+        <svg
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 h-full w-full"
+          preserveAspectRatio="none"
+          viewBox="0 0 1440 200"
+        >
+          <path d="M0 130 C 240 90, 480 170, 720 130 S 1200 90, 1440 140 V200 H0 Z" fill="#ffffff" opacity="0.10" />
+          <path d="M0 160 C 300 120, 560 190, 860 150 S 1240 120, 1440 165 V200 H0 Z" fill="#003d2c" opacity="0.14" />
+          <path d="M0 100 C 360 70, 620 120, 960 95 S 1300 75, 1440 105 V200 H0 Z" fill="#ffffff" opacity="0.06" />
+        </svg>
+        <div className="container relative mx-auto flex items-center gap-4 px-4 py-6">
+          <img
+            src={portrait}
+            alt="Yves Trionnaire"
+            className="h-16 w-16 rounded-2xl object-cover ring-2 ring-white/40"
+          />
+          <div>
+            <div className="text-2xl font-bold tracking-tight">Yves</div>
+            <div className="text-sm text-primary-foreground/80">Teacher dashboard</div>
           </div>
-          <a
-            href="#weekly-schedule"
-            className="inline-flex items-center gap-2 self-start rounded-lg border-2 border-white/70 px-5 py-2.5 text-sm font-semibold transition hover:bg-white/15 sm:self-auto"
-          >
-            <CalendarDays className="h-4 w-4" /> Weekly Schedule
-          </a>
         </div>
       </div>
 
