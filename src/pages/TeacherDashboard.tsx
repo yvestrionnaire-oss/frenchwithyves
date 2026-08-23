@@ -254,10 +254,12 @@ export default function TeacherDashboard() {
 
   return (
     <div className="min-h-dvh bg-background">
-      <header className="border-b">
+      <div className="h-1 bg-primary" />
+      <header className="border-b bg-card">
         <div className="container mx-auto flex items-center justify-between px-4 py-4">
-          <Link to="/" className="text-lg font-semibold tracking-tight">
-            French with Yves · Teacher
+          <Link to="/" className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">Y</span>
+            French with Yves <span className="text-primary">· Teacher</span>
           </Link>
           <div className="flex items-center gap-3 text-sm">
             <span className="text-muted-foreground hidden sm:inline">{user?.email}</span>
@@ -588,12 +590,25 @@ function Stat({
   highlight?: boolean;
 }) {
   return (
-    <Card className={highlight ? "border-primary" : ""}>
+    <Card
+      className={
+        highlight
+          ? "border-primary/40 bg-primary/5 shadow-sm"
+          : "border-border transition hover:border-primary/30 hover:shadow-sm"
+      }
+    >
       <CardContent className="flex items-center gap-4 p-6">
-        <div className="text-muted-foreground">{icon}</div>
+        <div
+          className={
+            "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl " +
+            (highlight ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary")
+          }
+        >
+          {icon}
+        </div>
         <div>
-          <div className="text-3xl font-semibold">{value}</div>
-          <div className="text-sm text-muted-foreground">{label}</div>
+          <div className="text-3xl font-bold tracking-tight text-foreground">{value}</div>
+          <div className="text-sm font-medium text-secondaryText">{label}</div>
         </div>
       </CardContent>
     </Card>

@@ -251,9 +251,11 @@ export default function StudentDashboard() {
   return (
     <PayPalScriptProvider options={{ clientId: PAYPAL_CLIENT_ID, currency: "USD" }}>
     <div className="min-h-dvh bg-background">
-      <header className="border-b">
+      <div className="h-1 bg-primary" />
+      <header className="border-b bg-card">
         <div className="container mx-auto flex items-center justify-between px-4 py-4">
-          <Link to="/" className="text-lg font-semibold tracking-tight">
+          <Link to="/" className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">Y</span>
             French with Yves
           </Link>
           <div className="flex items-center gap-2 text-sm sm:gap-3">
@@ -281,17 +283,17 @@ export default function StudentDashboard() {
 
         {/* Credits + Book CTA */}
         <div className="grid gap-4 md:grid-cols-3">
-          <Card className="md:col-span-2 border-primary/30">
+          <Card className="md:col-span-2 border-primary/40 bg-primary/5 shadow-sm">
             <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <div className="text-sm text-muted-foreground">Available lessons</div>
+                <div className="text-sm font-medium text-secondaryText">Available lessons</div>
                 <div className="mt-1 flex items-baseline gap-2">
-                  <span className="text-5xl font-semibold text-primary">{credits}</span>
-                  <span className="text-sm font-medium text-muted-foreground">
+                  <span className="text-5xl font-bold tracking-tight text-primary">{credits}</span>
+                  <span className="text-sm font-medium text-secondaryText">
                     {credits === 1 ? "lesson remaining" : "lessons remaining"}
                   </span>
                 </div>
-                <p className="mt-2 text-xs text-muted-foreground">
+                <p className="mt-2 text-xs text-secondaryText">
                   💡 Each lesson is 60 minutes. Book them all at once, or one at a time.
                 </p>
               </div>
@@ -303,10 +305,15 @@ export default function StudentDashboard() {
               </Button>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-sm text-muted-foreground">Lessons completed</div>
-              <div className="mt-1 text-4xl font-semibold">{past.length}</div>
+          <Card className="transition hover:border-primary/30 hover:shadow-sm">
+            <CardContent className="flex items-center gap-4 p-6">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <CheckCircle2 className="h-6 w-6" />
+              </div>
+              <div>
+                <div className="text-4xl font-bold tracking-tight text-foreground">{past.length}</div>
+                <div className="text-sm font-medium text-secondaryText">Lessons completed</div>
+              </div>
             </CardContent>
           </Card>
         </div>
