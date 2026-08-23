@@ -165,26 +165,36 @@ function Header() {
   const { user, role } = useAuth();
   const dashboardHref = role === "teacher" ? "/teacher" : "/student";
   return (
-    <header className="border-b border-border bg-card">
-      <div className="app-container flex items-center justify-between py-4">
+    <header className="relative overflow-hidden bg-primary text-primary-foreground">
+      <svg
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 h-full w-full"
+        preserveAspectRatio="none"
+        viewBox="0 0 1440 120"
+      >
+        <path d="M0 70 C 240 40, 480 100, 720 70 S 1200 40, 1440 80 V120 H0 Z" fill="#ffffff" opacity="0.10" />
+        <path d="M0 95 C 300 65, 560 115, 860 85 S 1240 65, 1440 100 V120 H0 Z" fill="#003d2c" opacity="0.14" />
+        <path d="M0 55 C 360 35, 620 75, 960 55 S 1300 40, 1440 60 V120 H0 Z" fill="#ffffff" opacity="0.06" />
+      </svg>
+      <div className="app-container relative flex items-center justify-between py-4">
         <a href="#home" className="flex items-center gap-3" aria-label="Yves Trionnaire — home">
-          <img src={portrait} alt="Yves Trionnaire" className="h-9 w-9 rounded-full object-cover ring-2 ring-primary/20" />
+          <img src={portrait} alt="Yves Trionnaire" className="h-9 w-9 rounded-full object-cover ring-2 ring-white/50" />
           <div className="leading-tight">
             <div className="font-bold">Yves Trionnaire</div>
-            <div className="text-xs text-secondaryText">Native French teacher</div>
+            <div className="text-xs text-primary-foreground/80">Native French teacher</div>
           </div>
         </a>
-        <nav className="hidden items-center gap-6 text-sm font-semibold text-secondaryText md:flex">
-          <a href="#about" className="hover:text-primary">About</a>
-          <a href="#how-it-works" className="hover:text-primary">How it works</a>
-          <a href="mailto:yvestrionnaire@gmail.com?subject=Question%20about%20French%20lessons" className="hover:text-primary">Contact</a>
+        <nav className="hidden items-center gap-6 text-sm font-semibold text-primary-foreground/90 md:flex">
+          <a href="#about" className="transition hover:text-white">About</a>
+          <a href="#how-it-works" className="transition hover:text-white">How it works</a>
+          <a href="mailto:yvestrionnaire@gmail.com?subject=Question%20about%20French%20lessons" className="transition hover:text-white">Contact</a>
         </nav>
         {user ? (
-          <Link to={dashboardHref} className="btn-primary !py-2 !text-xs">Go to dashboard</Link>
+          <Link to={dashboardHref} className="rounded-md bg-white px-4 py-2 text-xs font-semibold text-primary transition hover:bg-white/90">Go to dashboard</Link>
         ) : (
-          <div className="flex items-center gap-2">
-            <Link to="/auth?mode=signin" className="text-sm font-semibold text-secondaryText hover:text-primary">Sign in</Link>
-            <Link to="/auth" className="btn-primary !py-2 !text-xs">Sign up</Link>
+          <div className="flex items-center gap-3">
+            <Link to="/auth?mode=signin" className="text-sm font-semibold text-primary-foreground/90 transition hover:text-white">Sign in</Link>
+            <Link to="/auth" className="rounded-md bg-white px-4 py-2 text-xs font-semibold text-primary transition hover:bg-white/90">Sign up</Link>
           </div>
         )}
       </div>
