@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BookOpen, Star, Target, Users } from "lucide-react";
+import { BookOpen, Clock, Star, Target, Users } from "lucide-react";
 
 /* Shared building blocks used by both the public Landing page and the
    authenticated About page. Single source of truth for stats, profile tabs,
@@ -30,11 +30,12 @@ export function StepCard({ n, title, icon, children }: { n: string; title: strin
 
 export function StatsGrid() {
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
       <StatCard icon={<BookOpen className="h-5 w-5" />} value="9,203" label="Lessons taught" />
       <StatCard icon={<Star className="h-5 w-5" />} value="5.0 / 5.0" label="Average rating" />
       <StatCard icon={<Target className="h-5 w-5" />} value="9+ years" label="Teaching experience" />
       <StatCard icon={<Users className="h-5 w-5" />} value="521" label="Students taught" />
+      <StatCard icon={<Clock className="h-5 w-5" />} value="23 hrs" label="Avg. per student" />
     </div>
   );
 }
