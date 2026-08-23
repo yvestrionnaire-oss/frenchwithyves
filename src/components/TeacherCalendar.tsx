@@ -1,16 +1,25 @@
-// Read-only weekly calendar for the teacher: shows booked lessons + Google Calendar events.
-// When `mode` is "add" or "remove", clicking a 30-min cell toggles an
-// availability override of kind "open" or "block" respectively.
-import { useEffect, useMemo, useState } from "react";
+// Teacher weekly schedule (Verbling-style).
+//
+// Availability is RECURRING by weekday, stored in `weekly_availability`
+// (weekday + start_min/end_min, Peru local minutes). Clicking a cell in
+// "add"/"remove" mode toggles that half-hour for that weekday — and it
+// applies to every week. Booked lessons are shown per-week (blue) with week
+// navigation. All times displayed in Peru time (America/Lima), the teacher's
+// schedule reference.
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Loader2, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
-const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const PET_START_MIN = 5 * 60 + 30;
-const PET_END_MIN = 19 * 60;
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+// Column order left→right is Mon..Sun; map to JS getDay() (0=Sun..6=Sat).
+const COL_TO_WEEKDAY = [1, 2, 3, 4, 5, 6, 0];
+
+// Grid rows: 6:00am → 9:00pm Peru time, 30-min slots.
+const GRID_START_MIN = 6 * 60; // 360
+const GRID_END_MIN = 21 * 60; // 1260
 
 type Lesson = {
   id: string;
@@ -22,14 +31,12 @@ type Lesson = {
   student_id: string;
 };
 type Profile = { id: string; full_name: string | null };
-type Busy = { start: string; end: string };
-type OverrideKind = "open" | "block";
-type Override = { id: string; kind: OverrideKind; starts_at: string; ends_at: string };
+type WeeklyBlock = { id: string; weekday: number; start_min: number; end_min: number };
 export type CalendarMode = "idle" | "add" | "remove";
 
-function startOfWeek(d: Date) {
+function startOfWeekMonday(d: Date) {
   const out = new Date(d);
-  const day = out.getDay();
+  const day = out.getDay(); // 0=Sun
   const diff = day === 0 ? -6 : 1 - day;
   out.setDate(out.getDate() + diff);
   out.setHours(0, 0, 0, 0);
@@ -40,14 +47,28 @@ function addDays(d: Date, n: number) {
   out.setDate(out.getDate() + n);
   return out;
 }
-function petMinutes(d: Date) {
+// Peru local minutes-since-midnight + weekday for a UTC instant.
+function petParts(d: Date): { min: number; weekday: number } {
   const fmt = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Lima", hour: "2-digit", minute: "2-digit", hour12: false,
+    timeZone: "America/Lima",
+    hour: "2-digit",
+    minute: "2-digit",
+    weekday: "short",
+    hour12: false,
   });
   const parts = fmt.formatToParts(d);
   const h = Number(parts.find((p) => p.type === "hour")?.value ?? "0");
   const m = Number(parts.find((p) => p.type === "minute")?.value ?? "0");
-  return h * 60 + m;
+  const wdName = parts.find((p) => p.type === "weekday")?.value ?? "Sun";
+  const wdMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return { min: h * 60 + m, weekday: wdMap[wdName] ?? 0 };
+}
+function fmtRowLabel(min: number) {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  const ampm = h < 12 ? "AM" : "PM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${m.toString().padStart(2, "0")} ${ampm}`;
 }
 
 export function TeacherCalendar({
@@ -59,28 +80,20 @@ export function TeacherCalendar({
 }) {
   const [weekOffset, setWeekOffset] = useState(0);
   const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [busy, setBusy] = useState<Busy[]>([]);
-  const [overrides, setOverrides] = useState<Override[]>([]);
+  const [blocks, setBlocks] = useState<WeeklyBlock[]>([]);
   const [loading, setLoading] = useState(true);
-  const [savingSlot, setSavingSlot] = useState<string | null>(null);
+  const [savingKey, setSavingKey] = useState<string | null>(null);
 
-  const weekStart = useMemo(() => addDays(startOfWeek(new Date()), weekOffset * 7), [weekOffset]);
+  const weekStart = useMemo(
+    () => addDays(startOfWeekMonday(new Date()), weekOffset * 7),
+    [weekOffset],
+  );
   const weekEnd = useMemo(() => addDays(weekStart, 7), [weekStart]);
   const profileMap = useMemo(() => new Map(profiles.map((p) => [p.id, p])), [profiles]);
 
-  useEffect(() => {
-    void load();
-    const ch = supabase
-      .channel(`teacher-cal-${weekStart.toISOString()}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "lessons" }, () => void load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "availability_overrides" }, () => void load())
-      .subscribe();
-    return () => { void supabase.removeChannel(ch); };
-  }, [weekStart.toISOString()]);
-
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
-    const [l, b, o] = await Promise.all([
+    const [l, wa] = await Promise.all([
       supabase
         .from("lessons")
         .select("id, scheduled_at, duration_minutes, lesson_type, status, meet_link, student_id")
@@ -88,147 +101,108 @@ export function TeacherCalendar({
         .gte("scheduled_at", weekStart.toISOString())
         .lt("scheduled_at", weekEnd.toISOString())
         .order("scheduled_at"),
-      supabase.functions.invoke("get-busy-times", {
-        body: { from: weekStart.toISOString(), to: weekEnd.toISOString() },
-      }),
-      supabase
-        .from("availability_overrides")
-        .select("id, kind, starts_at, ends_at")
-        .lt("starts_at", weekEnd.toISOString())
-        .gt("ends_at", weekStart.toISOString()),
+      supabase.from("weekly_availability").select("id, weekday, start_min, end_min"),
     ]);
     setLessons((l.data ?? []) as Lesson[]);
-    setBusy(((b.data as { busy?: Busy[] } | null)?.busy ?? []));
-    setOverrides((o.data ?? []) as Override[]);
+    setBlocks((wa.data ?? []) as WeeklyBlock[]);
     setLoading(false);
-  }
+  }, [weekStart, weekEnd]);
 
-  const halfHourSlots = useMemo(() => {
-    const out: { hour: number; minute: number }[] = [];
-    for (let h = 0; h < 24; h++) for (const m of [0, 30]) out.push({ hour: h, minute: m });
+  useEffect(() => {
+    void load();
+    const ch = supabase
+      .channel(`teacher-cal-${weekStart.toISOString()}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "lessons" }, () => void load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "weekly_availability" }, () => void load())
+      .subscribe();
+    return () => { void supabase.removeChannel(ch); };
+  }, [load, weekStart]);
+
+  // Rows to render (6am–9pm, 30-min steps).
+  const rows = useMemo(() => {
+    const out: number[] = [];
+    for (let m = GRID_START_MIN; m < GRID_END_MIN; m += 30) out.push(m);
     return out;
   }, []);
 
-  function slotDate(dayIdx: number, hour: number, minute: number) {
-    const d = addDays(weekStart, dayIdx);
-    d.setHours(hour, minute, 0, 0);
-    return d;
+  // Is (weekday, min) inside a recurring availability block?
+  const isAvailable = useCallback(
+    (weekday: number, min: number) =>
+      blocks.some((b) => b.weekday === weekday && b.start_min <= min && b.end_min >= min + 30),
+    [blocks],
+  );
+
+  // The UTC Date for a given column/row in the currently-viewed week.
+  function cellDate(col: number, min: number): Date {
+    const d = addDays(weekStart, col);
+    d.setHours(0, 0, 0, 0);
+    return new Date(d.getTime() + min * 60_000);
   }
 
-  const lessonByStart = useMemo(() => {
-    const map = new Map<number, Lesson>();
-    for (const l of lessons) map.set(new Date(l.scheduled_at).getTime(), l);
-    return map;
-  }, [lessons]);
+  // Booked lesson covering this specific cell (this week), if any.
+  const lessonCoveringCell = useCallback(
+    (col: number, min: number): Lesson | null => {
+      const t = cellDate(col, min).getTime();
+      for (const l of lessons) {
+        const s = new Date(l.scheduled_at).getTime();
+        const e = s + l.duration_minutes * 60_000;
+        if (s <= t && t < e) return l;
+      }
+      return null;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [lessons, weekStart],
+  );
 
-  function lessonCoversSlot(slot: Date): Lesson | null {
-    const t = slot.getTime();
-    for (const l of lessons) {
-      const s = new Date(l.scheduled_at).getTime();
-      const e = s + l.duration_minutes * 60_000;
-      if (s <= t && t < e) return l;
-    }
-    return null;
-  }
-  function busyCoversSlot(slot: Date): boolean {
-    const t = slot.getTime();
-    for (const b of busy) {
-      const s = new Date(b.start).getTime();
-      const e = new Date(b.end).getTime();
-      if (s <= t && t < e) return true;
-    }
-    return false;
-  }
-  function overrideCoveringSlot(slot: Date, kind: OverrideKind): Override | null {
-    const t = slot.getTime();
-    for (const o of overrides) {
-      if (o.kind !== kind) continue;
-      const s = new Date(o.starts_at).getTime();
-      const e = new Date(o.ends_at).getTime();
-      if (s <= t && t < e) return o;
-    }
-    return null;
-  }
-
-  async function handleSlotClick(slot: Date) {
+  async function toggleCell(col: number, min: number) {
     if (mode === "idle") return;
-    const kind: OverrideKind = mode === "add" ? "open" : "block";
-    const key = slot.toISOString();
-    setSavingSlot(key);
-    // If an override of this kind already covers this exact slot, remove it.
-    const existing = overrideCoveringSlot(slot, kind);
-    if (existing) {
-      const { error } = await supabase.from("availability_overrides").delete().eq("id", existing.id);
-      setSavingSlot(null);
-      if (error) console.error("delete override", error);
-      else void load();
-      return;
+    const weekday = COL_TO_WEEKDAY[col];
+    const key = `${col}-${min}`;
+    setSavingKey(key);
+    try {
+      const existing = blocks.find(
+        (b) => b.weekday === weekday && b.start_min <= min && b.end_min >= min + 30,
+      );
+      if (mode === "remove") {
+        if (!existing) return;
+        // Split/trim the covering block so only this 30-min cell is removed.
+        await supabase.from("weekly_availability").delete().eq("id", existing.id);
+        const pieces: { weekday: number; start_min: number; end_min: number }[] = [];
+        if (existing.start_min < min) pieces.push({ weekday, start_min: existing.start_min, end_min: min });
+        if (existing.end_min > min + 30) pieces.push({ weekday, start_min: min + 30, end_min: existing.end_min });
+        if (pieces.length) await supabase.from("weekly_availability").insert(pieces);
+      } else {
+        // add
+        if (existing) return; // already available
+        await supabase.from("weekly_availability").insert({ weekday, start_min: min, end_min: min + 30 });
+      }
+      await load();
+    } finally {
+      setSavingKey(null);
     }
-    const ends = new Date(slot.getTime() + 30 * 60_000);
-    const { error } = await supabase.from("availability_overrides").insert({
-      kind,
-      starts_at: slot.toISOString(),
-      ends_at: ends.toISOString(),
-    });
-    setSavingSlot(null);
-    if (error) console.error("insert override", error);
-    else void load();
   }
 
   const interactive = mode !== "idle";
+  const tz = "America/Lima";
 
-  const hoursAvailableThisWeek = useMemo(() => {
-    let count = 0;
-    for (let d = 0; d < 7; d++) {
-      for (const { hour, minute } of halfHourSlots) {
-        const slot = slotDate(d, hour, minute);
-        const start = petMinutes(slot);
-        const inHours = start >= PET_START_MIN && start + 30 <= PET_END_MIN;
-        const block = overrideCoveringSlot(slot, "block");
-        const open = overrideCoveringSlot(slot, "open");
-        if ((inHours && !block) || (!inHours && open)) count++;
-      }
-    }
-    return count / 2;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [overrides, weekStart, halfHourSlots]);
-
-  const visibleHalfHourSlots = useMemo(() => {
-    const isInteresting = (slot: Date): boolean => {
-      const m = petMinutes(slot);
-      if (m >= PET_START_MIN && m + 30 <= PET_END_MIN) return true;
-      if (overrideCoveringSlot(slot, "open")) return true;
-      if (overrideCoveringSlot(slot, "block")) return true;
-      if (lessonCoversSlot(slot)) return true;
-      if (busyCoversSlot(slot)) return true;
-      return false;
-    };
-    const visible = halfHourSlots.filter(({ hour, minute }) => {
-      for (let day = 0; day < 7; day++) {
-        if (isInteresting(slotDate(day, hour, minute))) return true;
-      }
-      return false;
-    });
-    if (visible.length > 0) return visible;
-    return halfHourSlots.filter(({ hour }) => hour >= 8 && hour < 18);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [halfHourSlots, weekStart, lessons, busy, overrides]);
+  // Total recurring hours/week (for the header stat).
+  const weeklyHours = useMemo(() => {
+    let mins = 0;
+    for (const b of blocks) mins += b.end_min - b.start_min;
+    return mins / 60;
+  }, [blocks]);
 
   return (
     <Card className="overflow-hidden">
       <div className="flex items-center justify-between border-b p-3">
-        <Button
-          variant="outline" size="sm"
-          onClick={() => setWeekOffset((w) => w - 1)}
-        >
+        <Button variant="outline" size="sm" onClick={() => setWeekOffset((w) => w - 1)}>
           <ChevronLeft className="h-4 w-4" /> Prev
         </Button>
         <div className="text-sm font-medium">
-          Week of {weekStart.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}
+          Week of {weekStart.toLocaleDateString(undefined, { month: "long", day: "numeric" })}
           {loading && <Loader2 className="ml-2 inline h-3 w-3 animate-spin" />}
           <span className="ml-3 text-xs text-muted-foreground">
-            Hours available this week:{" "}
-            <strong className="text-foreground">{hoursAvailableThisWeek.toFixed(1)}</strong>
+            Recurring: <strong className="text-primary">{weeklyHours.toFixed(1)}h</strong>/week
           </span>
         </div>
         <Button variant="outline" size="sm" onClick={() => setWeekOffset((w) => w + 1)}>
@@ -237,125 +211,86 @@ export function TeacherCalendar({
       </div>
 
       <div className="border-b bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-        All times shown in your local timezone:{" "}
-        <strong className="text-foreground">{Intl.DateTimeFormat().resolvedOptions().timeZone}</strong>
+        Times shown in <strong className="text-foreground">Peru time</strong> ({tz}). Availability repeats every week.
         {interactive && (
-          <span className="ml-2 italic">
-            · {mode === "add" ? "Click a cell to open extra time (click again to undo)" : "Click a cell to block time (click again to undo)"}
+          <span className="ml-2 italic text-primary">
+            · {mode === "add" ? "Click a cell to make yourself available" : "Click a cell to remove availability"}
           </span>
         )}
       </div>
-      <div className="sm:hidden px-3 py-1.5 text-center text-[11px] text-muted-foreground bg-muted/10">
-        ← swipe to see more days →
-      </div>
+
       <div className="overflow-x-auto">
-        <div className="grid min-w-[800px] grid-cols-[80px_repeat(7,1fr)] sticky top-0 z-10 border-b bg-card">
-          <div className="p-2 text-xs font-medium text-muted-foreground">Local time</div>
-          {Array.from({ length: 7 }).map((_, i) => {
-            const d = addDays(weekStart, i);
-            const isToday = d.toDateString() === new Date().toDateString();
-            return (
-              <div key={i} className={cn("p-2 text-center text-xs font-medium", isToday && "text-primary font-semibold")}>
-                <div>{DAYS[d.getDay()]}</div>
-                <div className="text-base font-semibold text-foreground">{d.getDate()}</div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="max-h-[70vh] overflow-y-auto">
-          {visibleHalfHourSlots.map(({ hour, minute }) => {
-            const sample = slotDate(0, hour, minute);
-            const isHourMark = minute === 0;
-            const labelText = sample.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
-            return (
-              <div
-                key={`${hour}-${minute}`}
-                className={cn(
-                  "grid min-w-[800px] grid-cols-[80px_repeat(7,1fr)]",
-                  isHourMark ? "border-t-2 border-border" : "border-t border-dashed border-border/50",
-                )}
-              >
-                <div className={cn(
-                  "border-r px-2 py-1 text-[11px] flex items-start",
-                  isHourMark ? "font-bold text-foreground" : "text-muted-foreground/70",
-                )}>
-                  {labelText}
-                </div>
-                {Array.from({ length: 7 }).map((_, day) => {
-                  const slot = slotDate(day, hour, minute);
-                  const startsHere = lessonByStart.get(slot.getTime()) ?? null;
-                  const covers = startsHere ?? lessonCoversSlot(slot);
-                  const inHours = (() => {
-                    const start = petMinutes(slot);
-                    return start >= PET_START_MIN && start + 30 <= PET_END_MIN;
-                  })();
-                  const hasBusy = !covers && busyCoversSlot(slot);
-                  const blockOverride = overrideCoveringSlot(slot, "block");
-                  const openOverride = overrideCoveringSlot(slot, "open");
-                  const isSaving = savingSlot === slot.toISOString();
-
-                  if (startsHere) {
-                    const profile = profileMap.get(startsHere.student_id);
-                    return (
-                      <div
-                        key={day}
-                        className="relative border-r last:border-r-0 bg-primary/15 px-1 py-0.5 text-[10px]"
-                        style={{ minHeight: 28 }}
-                      >
-                        <div className="font-medium truncate">
-                          {profile?.full_name ?? "Student"}
-                        </div>
-                        <div className="text-muted-foreground truncate">{startsHere.duration_minutes}m</div>
-                        {startsHere.meet_link && (
-                          <a href={startsHere.meet_link} target="_blank" rel="noreferrer" className="absolute right-1 top-1 text-primary">
-                            <Video className="h-3 w-3" />
-                          </a>
-                        )}
-                      </div>
-                    );
-                  }
-                  const Cell = interactive ? "button" : "div";
+        <table className="w-full min-w-[560px] border-collapse text-xs">
+          <thead>
+            <tr>
+              <th className="w-16 border-b bg-muted/10 p-1" />
+              {DAYS.map((d, col) => {
+                const date = addDays(weekStart, col);
+                return (
+                  <th key={d} className="border-b border-l bg-muted/10 p-1 font-medium">
+                    <div>{d}</div>
+                    <div className="text-[10px] font-normal text-muted-foreground">
+                      {date.toLocaleDateString(undefined, { month: "numeric", day: "numeric" })}
+                    </div>
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((min) => (
+              <tr key={min}>
+                <td className="w-16 whitespace-nowrap border-b pr-2 text-right text-[10px] text-muted-foreground">
+                  {fmtRowLabel(min)}
+                </td>
+                {DAYS.map((_, col) => {
+                  const weekday = COL_TO_WEEKDAY[col];
+                  const available = isAvailable(weekday, min);
+                  const lesson = lessonCoveringCell(col, min);
+                  const key = `${col}-${min}`;
+                  const saving = savingKey === key;
+                  const isLessonStart =
+                    lesson && new Date(lesson.scheduled_at).getTime() === cellDate(col, min).getTime();
+                  const student = lesson ? profileMap.get(lesson.student_id) : null;
                   return (
-                    <Cell
-                      key={day}
-                      type={interactive ? ("button" as const) : undefined}
-                      onClick={interactive ? () => void handleSlotClick(slot) : undefined}
-                      disabled={interactive ? (!!covers || isSaving) : undefined}
+                    <td
+                      key={col}
+                      onClick={() => interactive && !lesson && toggleCell(col, min)}
                       className={cn(
-                        "border-r last:border-r-0 h-7 w-full text-left",
-                        !inHours && !openOverride && "bg-amber-100/60 dark:bg-amber-950/30",
-                        covers && "bg-primary/15",
-                        hasBusy && "bg-destructive/10",
-                        openOverride && "bg-emerald-200/70 dark:bg-emerald-900/40",
-                        blockOverride && "bg-destructive/30",
-                        interactive && !covers && "cursor-pointer hover:ring-2 hover:ring-primary/40 hover:ring-inset",
-                        isSaving && "opacity-50",
+                        "h-8 border-b border-l text-center align-top",
+                        interactive && !lesson && "cursor-pointer",
+                        lesson
+                          ? "bg-[#0C447C] text-white"
+                          : available
+                            ? "bg-[#00B383]/90 hover:bg-[#00B383]"
+                            : "bg-background hover:bg-muted/40",
+                        saving && "opacity-50",
                       )}
-                      title={
-                        blockOverride
-                          ? "Blocked (override) — click to remove"
-                          : openOverride
-                            ? "Extra availability (override) — click to remove"
-                            : hasBusy
-                              ? "Google Calendar event"
-                              : undefined
-                      }
-                    />
+                    >
+                      {isLessonStart && (
+                        <div className="flex items-center justify-center gap-1 px-1 py-0.5 text-[10px] leading-tight">
+                          <Video className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{student?.full_name ?? "Lesson"}</span>
+                        </div>
+                      )}
+                    </td>
                   );
                 })}
-              </div>
-            );
-          })}
-        </div>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
-      <div className="flex flex-wrap items-center gap-4 border-t p-3 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-primary/20" /> Lesson booked</span>
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-destructive/20" /> Google Calendar busy</span>
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-destructive/30" /> Blocked (override)</span>
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-emerald-200/70 dark:bg-emerald-900/40" /> Extra availability</span>
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-amber-100 dark:bg-amber-950/30" /> Outside teaching hours</span>
+      <div className="flex flex-wrap items-center gap-5 border-t p-3 text-xs">
+        <div className="flex items-center gap-2">
+          <span className="inline-block h-3.5 w-3.5 rounded bg-[#00B383]" />
+          <span className="text-muted-foreground">Available</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="inline-block h-3.5 w-3.5 rounded bg-[#0C447C]" />
+          <span className="text-muted-foreground">Lesson booked</span>
+        </div>
       </div>
     </Card>
   );

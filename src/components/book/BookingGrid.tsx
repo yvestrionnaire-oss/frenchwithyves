@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { DAYS, addDays, isWithinTeachingHours } from "@/lib/booking";
+import { DAYS, addDays } from "@/lib/booking";
 
 type Slot = { hour: number; minute: number };
 
@@ -15,6 +15,7 @@ type Props = {
   canStartLessonAt: (slot: Date) => boolean;
   isThirtyMinuteCellOccupied: (slot: Date) => boolean;
   isOpenedByOverride?: (slot: Date) => boolean;
+  isWithinAvailability: (slot: Date) => boolean;
   toggle: (slot: Date) => void;
 };
 
@@ -28,6 +29,7 @@ export function BookingGrid({
   canStartLessonAt,
   isThirtyMinuteCellOccupied,
   isOpenedByOverride,
+  isWithinAvailability,
   toggle,
 }: Props) {
   function slotDate(dayIdx: number, hour: number, minute: number) {
@@ -38,7 +40,7 @@ export function BookingGrid({
 
   const visibleHalfHourSlots = useMemo(() => {
     const isInteresting = (slot: Date): boolean => {
-      if (isWithinTeachingHours(slot, 30)) return true;
+      if (isWithinAvailability(slot)) return true;
       if (isOpenedByOverride?.(slot)) return true;
       if (isThirtyMinuteCellOccupied(slot)) return true;
       return false;
@@ -108,7 +110,7 @@ export function BookingGrid({
                   const isPast = slot.getTime() < Date.now();
                   const isContinuation = isContinuationOf(slot);
                   const openedExtra = !!isOpenedByOverride?.(slot);
-                  const inHours = isWithinTeachingHours(slot, duration) || openedExtra;
+                  const inHours = isWithinAvailability(slot) || openedExtra;
                   const isSelected = selected.has(slot.toISOString());
                   const fullLessonBlocked = !isSelected && !isContinuation && !canStartLessonAt(slot);
                   const cellOccupied = isThirtyMinuteCellOccupied(slot);
@@ -154,7 +156,7 @@ export function BookingGrid({
         <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm border bg-background" /> Available</span>
         <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-primary" /> Selected{duration === 60 && " (60 min = 2 cells)"}</span>
         <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-destructive/20" /> Booked / busy</span>
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-amber-100 dark:bg-amber-950/30" /> Outside teaching hours</span>
+        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-amber-100 dark:bg-amber-950/30" /> Unavailable</span>
       </div>
     </Card>
   );

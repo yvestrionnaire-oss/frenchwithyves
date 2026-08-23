@@ -11,7 +11,6 @@ import {
   SLOT_MS,
   MAX_WEEKS_AHEAD,
   addDays,
-  isWithinTeachingHours,
   startOfWeek,
 } from "@/lib/booking";
 import { BookingGrid } from "@/components/book/BookingGrid";
@@ -28,6 +27,22 @@ type LessonRow = {
 };
 type BusyRange = { start: string; end: string };
 type Override = { kind: "open" | "block"; starts_at: string; ends_at: string };
+type WeeklyBlock = { weekday: number; start_min: number; end_min: number };
+
+// Peru local minutes-since-midnight + weekday for a UTC instant.
+function petMinWeekday(d: Date): { min: number; weekday: number } {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Lima",
+    hour: "2-digit",
+    minute: "2-digit",
+    weekday: "short",
+    hour12: false,
+  }).formatToParts(d);
+  const h = Number(parts.find((p) => p.type === "hour")?.value ?? "0");
+  const m = Number(parts.find((p) => p.type === "minute")?.value ?? "0");
+  const wd: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return { min: h * 60 + m, weekday: wd[parts.find((p) => p.type === "weekday")?.value ?? "Sun"] ?? 0 };
+}
 
 
 export default function Book() {
@@ -39,6 +54,7 @@ export default function Book() {
   const [rescheduleLesson, setRescheduleLesson] = useState<LessonRow | null>(null);
   const [busy, setBusy] = useState<BusyRange[]>([]);
   const [overrides, setOverrides] = useState<Override[]>([]);
+  const [weeklyBlocks, setWeeklyBlocks] = useState<WeeklyBlock[]>([]);
   const [credits, setCredits] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [weekOffset, setWeekOffset] = useState(0);
@@ -72,7 +88,7 @@ export default function Book() {
 
   async function load() {
     setLoading(true);
-    const [lessonsRes, balRes, busyRes, bookedRes, overridesRes] = await Promise.all([
+    const [lessonsRes, balRes, busyRes, bookedRes, overridesRes, weeklyRes] = await Promise.all([
       supabase
         .from("lessons")
         .select("id, scheduled_at, duration_minutes, status, lesson_type, student_id")
@@ -92,6 +108,7 @@ export default function Book() {
         .select("kind, starts_at, ends_at")
         .lt("starts_at", addDays(weekStart, 14).toISOString())
         .gt("ends_at", weekStart.toISOString()),
+      supabase.from("weekly_availability").select("weekday, start_min, end_min"),
     ]);
 
     setLessons((lessonsRes.data ?? []) as LessonRow[]);
@@ -103,6 +120,7 @@ export default function Book() {
       .map((r) => ({ start: r.start_at, end: r.end_at }));
     setBusy([...calendarBusy, ...otherBooked]);
     setOverrides((overridesRes.data ?? []) as Override[]);
+    setWeeklyBlocks((weeklyRes.data ?? []) as WeeklyBlock[]);
 
     setLoading(false);
   }
@@ -152,6 +170,15 @@ export default function Book() {
       .filter((o) => o.kind === "open")
       .map((o) => [new Date(o.starts_at).getTime(), new Date(o.ends_at).getTime()] as [number, number]);
   }, [overrides]);
+
+  // A cell is inside the teacher's recurring weekly availability if its Peru
+  // weekday + minute falls within one of the weekly_availability blocks.
+  function isWithinWeeklyAvailability(cell: Date): boolean {
+    const { min, weekday } = petMinWeekday(cell);
+    return weeklyBlocks.some(
+      (b) => b.weekday === weekday && b.start_min <= min && b.end_min >= min + 30,
+    );
+  }
 
   function isOpenedByOverride(slotStart: Date, durationMin: number): boolean {
     const s = slotStart.getTime();
@@ -224,14 +251,14 @@ export default function Book() {
     if (cells.length === 0) return false;
     return cells.every(
       (cell) =>
-        (isWithinTeachingHours(cell, SLOT_MINUTES) || isOpenedByOverride(cell, SLOT_MINUTES)) &&
+        (isWithinWeeklyAvailability(cell) || isOpenedByOverride(cell, SLOT_MINUTES)) &&
         !isThirtyMinuteCellOccupied(cell),
     );
   }
 
   function canStartLessonAt(slotStart: Date, selection: Set<string> = selected): boolean {
     if (slotStart.getTime() < Date.now()) return false;
-    if (!isWithinTeachingHours(slotStart, duration) && !isOpenedByOverride(slotStart, duration)) return false;
+    if (!isWithinWeeklyAvailability(slotStart) && !isOpenedByOverride(slotStart, duration)) return false;
     return areAllLessonCellsFree(slotStart, duration)
       && !rangeOverlapsOccupied(slotStart, duration)
       && !selectedOverlapsRange(slotStart, duration, selection);
@@ -432,6 +459,7 @@ export default function Book() {
           canStartLessonAt={canStartLessonAt}
           isThirtyMinuteCellOccupied={isThirtyMinuteCellOccupied}
           isOpenedByOverride={(slot) => isOpenedByOverride(slot, SLOT_MINUTES)}
+          isWithinAvailability={isWithinWeeklyAvailability}
           toggle={toggle}
         />
 

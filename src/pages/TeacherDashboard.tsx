@@ -475,7 +475,7 @@ export default function TeacherDashboard() {
         <section>
           <h2 className="mb-3 text-xl font-semibold">Weekly schedule</h2>
           <p className="mb-3 text-sm text-muted-foreground">
-            30-min slots in your local time. Booked lessons + Google Calendar busy times. Updates live.
+            Set the times you're available to teach each week. Your availability repeats every week — students can only book inside it. Booked lessons appear in blue.
           </p>
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <Button
