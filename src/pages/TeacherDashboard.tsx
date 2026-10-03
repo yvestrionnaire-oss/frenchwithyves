@@ -314,8 +314,11 @@ export default function TeacherDashboard() {
               const matches = lessons.filter((l) => {
                 if (l.status === "cancelled") return false;
                 const t = new Date(l.scheduled_at).getTime();
-                if (lessonsFilter === "upcoming") return l.status === "scheduled" && t >= now;
-                return l.status === "completed" || (l.status === "scheduled" && t < now);
+                // Use the lesson's END time so a class in progress stays under
+                // "Upcoming" until it actually finishes (not the moment it starts).
+                const endT = t + (l.duration_minutes ?? 60) * 60_000;
+                if (lessonsFilter === "upcoming") return l.status === "scheduled" && endT > now;
+                return l.status === "completed" || (l.status === "scheduled" && endT <= now);
               }).filter((l) => {
                 if (!nameQuery) return true;
                 const p = profileMap.get(l.student_id);
