@@ -256,8 +256,12 @@ export default function Book() {
     );
   }
 
+  // Lessons must be booked at least 12 hours in advance (mirrors the
+  // server-side guard in book_lessons / reschedule_lesson).
+  const BOOKING_LEAD_MS = 12 * 60 * 60 * 1000;
+
   function canStartLessonAt(slotStart: Date, selection: Set<string> = selected): boolean {
-    if (slotStart.getTime() < Date.now()) return false;
+    if (slotStart.getTime() < Date.now() + BOOKING_LEAD_MS) return false;
     if (!isWithinWeeklyAvailability(slotStart) && !isOpenedByOverride(slotStart, duration)) return false;
     return areAllLessonCellsFree(slotStart, duration)
       && !rangeOverlapsOccupied(slotStart, duration)
@@ -431,6 +435,9 @@ export default function Book() {
             {isRescheduling
               ? `Currently ${new Date(rescheduleLesson!.scheduled_at).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}. Pick a new slot below.`
               : `Pick up to ${credits} lesson slot${credits === 1 ? "" : "s"} from Yves's available times below — all times are shown in your local timezone.`}
+          </p>
+          <p className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-secondary px-2.5 py-1 text-xs font-medium text-primary">
+            ⏱ Lessons must be booked at least 12 hours in advance.
           </p>
         </div>
 
