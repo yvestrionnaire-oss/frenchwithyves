@@ -149,6 +149,79 @@ async function fetchBusyRanges(
   return merged;
 }
 
+// --- Verbling iCal feed ---
+// Google refreshes subscribed iCal URLs on a slow, opaque schedule (often
+// 24h+), so relying on the teacher's Google Calendar to relay Verbling
+// lessons is unreliable. Instead we read the Verbling .ics feed DIRECTLY on
+// every availability check, so Verbling bookings block this site's slots
+// essentially in real time. Best-effort: if the feed is unreachable we log
+// and continue with Google data only (rather than blocking all bookings
+// whenever Verbling is flaky).
+
+// Parse an iCal UTC timestamp like "20261007T100000Z" → ms epoch.
+function parseIcsUtc(v: string): number | null {
+  const m = v.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/);
+  if (!m) return null;
+  return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]);
+}
+
+// Parse an ISO-8601 duration like "PT1H", "PT30M", "PT1H30M" → ms.
+function parseIcsDuration(v: string): number {
+  const m = v.match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/);
+  if (!m) return 60 * 60_000; // default 1h
+  return ((+(m[1] || 0)) * 3600 + (+(m[2] || 0)) * 60 + (+(m[3] || 0))) * 1000;
+}
+
+async function fetchVerblingBusy(from: string, to: string): Promise<BusyRange[]> {
+  const url = Deno.env.get("VERBLING_ICS_URL");
+  if (!url) return [];
+  let text: string;
+  try {
+    const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!resp.ok) {
+      console.error("Verbling ICS fetch non-2xx:", resp.status);
+      return [];
+    }
+    text = await resp.text();
+  } catch (e) {
+    console.error("Verbling ICS fetch failed:", e);
+    return [];
+  }
+
+  const fromMs = new Date(from).getTime();
+  const toMs = new Date(to).getTime();
+  const out: BusyRange[] = [];
+
+  // Unfold folded lines (continuation lines start with a space/tab), then walk
+  // VEVENT blocks.
+  const lines = text.replace(/\r\n[ \t]/g, "").split(/\r?\n/);
+  let inEvent = false;
+  let startMs: number | null = null;
+  let durMs = 60 * 60_000;
+  for (const line of lines) {
+    if (line === "BEGIN:VEVENT") { inEvent = true; startMs = null; durMs = 60 * 60_000; continue; }
+    if (line === "END:VEVENT") {
+      if (inEvent && startMs != null) {
+        const endMs = startMs + durMs;
+        if (startMs < toMs && endMs > fromMs) {
+          out.push({ start: new Date(startMs).toISOString(), end: new Date(endMs).toISOString() });
+        }
+      }
+      inEvent = false;
+      continue;
+    }
+    if (!inEvent) continue;
+    if (line.startsWith("DTSTART")) {
+      const v = line.slice(line.indexOf(":") + 1).trim();
+      startMs = parseIcsUtc(v);
+    } else if (line.startsWith("DURATION")) {
+      durMs = parseIcsDuration(line.slice(line.indexOf(":") + 1).trim());
+    }
+  }
+  console.log(`get-busy-times: Verbling feed contributed ${out.length} busy range(s)`);
+  return out;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -212,11 +285,18 @@ Deno.serve(async (req) => {
     );
 
     const busy = await fetchBusyRanges(accessToken, calendarIds, from, to);
+
+    // Also pull the Verbling feed directly (bypasses Google's slow refresh of
+    // subscribed iCal URLs) and merge. Best-effort — never blocks on failure.
+    const verblingBusy = await fetchVerblingBusy(from, to);
+    const merged = [...busy, ...verblingBusy];
+
     console.log(
-      `get-busy-times: returning ${busy.length} busy range(s) across ${calendarIds.length} calendar(s)`,
+      `get-busy-times: returning ${merged.length} busy range(s) ` +
+        `(${busy.length} Google + ${verblingBusy.length} Verbling)`,
     );
 
-    return jsonResponse({ busy });
+    return jsonResponse({ busy: merged });
   } catch (e) {
     // Hard failure — do NOT mask as success. Returning 503 ensures
     // book-with-availability throws CalendarCheckUnavailable and the
