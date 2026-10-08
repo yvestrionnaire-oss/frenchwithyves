@@ -4,6 +4,7 @@ import portrait from "@/assets/yves-trionnaire-real.jpg";
 import {
   Bell,
   CalendarDays,
+  CalendarClock,
   CheckCircle2,
   Copy,
   Loader2,
@@ -91,11 +92,11 @@ export default function TeacherDashboard() {
   const [rescheduleLessonId, setRescheduleLessonId] = useState<string | null>(null);
   const [cancelTarget, setCancelTarget] = useState<string | null>(null);
   const [calendarMode, setCalendarMode] = useState<CalendarMode>("idle");
-  type LessonsFilter = "upcoming" | "completed";
+  type LessonsFilter = "upcoming" | "completed" | "needs-scheduling";
   const [lessonsFilter, setLessonsFilter] = useState<LessonsFilter>(() => {
     if (typeof window === "undefined") return "upcoming";
     const v = window.localStorage.getItem("fwy.teacherLessonsFilter");
-    return v === "upcoming" || v === "completed" ? v : "upcoming";
+    return v === "upcoming" || v === "completed" || v === "needs-scheduling" ? v : "upcoming";
   });
   const [studentNameFilter, setStudentNameFilter] = useState("");
   useEffect(() => {
@@ -197,6 +198,16 @@ export default function TeacherDashboard() {
     return rows;
   }, [profiles, requests, lessons, user]);
 
+  // Students with credits bought but not yet booked ("need scheduling").
+  const toSchedule = useMemo(
+    () => students.filter((s) => s.credits > 0).sort((a, b) => b.credits - a.credits),
+    [students],
+  );
+  const totalToSchedule = useMemo(
+    () => toSchedule.reduce((sum, s) => sum + s.credits, 0),
+    [toSchedule],
+  );
+
   async function action(name: "mark_payment_link_sent" | "confirm_paid" | "approve_trial" | "cancel_request", id: string) {
     setBusy(id);
     const { error } = await supabase.rpc(name, { _request_id: id });
@@ -297,10 +308,13 @@ export default function TeacherDashboard() {
 
       <main className="container mx-auto max-w-6xl px-4 py-8 space-y-8">
         {/* Stats */}
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
           <Stat icon={<Users />} value={students.length} label="Students" />
           <Stat icon={<Mail />} value={pendingRequests.length} label="Pending requests" highlight={pendingRequests.length > 0} />
           <Stat icon={<CalendarDays />} value={upcoming.length} label="Upcoming lessons" />
+          <button type="button" onClick={() => setLessonsFilter("needs-scheduling")} className="w-full text-left" aria-label="View students who need to schedule lessons">
+            <Stat icon={<CalendarClock />} value={totalToSchedule} label="Need scheduling" highlight={totalToSchedule > 0} />
+          </button>
           <Stat icon={<Bell />} value={notifications.filter((n) => !n.read_at).length} label="New notifications" highlight={notifications.some((n) => !n.read_at)} />
         </div>
 
@@ -311,6 +325,64 @@ export default function TeacherDashboard() {
             {(() => {
               const now = Date.now();
               const nameQuery = studentNameFilter.trim().toLowerCase();
+
+              const controls = (
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Input
+                    placeholder="Filter by student name…"
+                    value={studentNameFilter}
+                    onChange={(e) => setStudentNameFilter(e.target.value)}
+                    className="w-full sm:w-[200px]"
+                  />
+                  <Select value={lessonsFilter} onValueChange={(v) => setLessonsFilter(v as typeof lessonsFilter)}>
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="upcoming">Upcoming</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="needs-scheduling">Need scheduling</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              );
+
+              // "Need scheduling" view: students with credits bought but not booked.
+              if (lessonsFilter === "needs-scheduling") {
+                const rows = toSchedule.filter(
+                  (s) => !nameQuery || (s.full_name ?? s.email ?? "").toLowerCase().includes(nameQuery),
+                );
+                return (
+                  <Card>
+                    <CardContent className="space-y-3 p-4">
+                      {controls}
+                      {rows.length === 0 ? (
+                        <p className="py-6 text-center text-sm text-muted-foreground">
+                          Everyone's booked — no lessons waiting to be scheduled.
+                        </p>
+                      ) : (
+                        <div className="divide-y">
+                          {rows.map((s) => (
+                            <div key={s.id} className="flex items-center justify-between gap-3 py-3">
+                              <div className="min-w-0">
+                                <div className="truncate font-medium">{s.full_name ?? s.email ?? "Student"}</div>
+                                <button
+                                  onClick={() => copyEmail(s.email)}
+                                  className="inline-flex max-w-full items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                                >
+                                  <Copy className="h-3 w-3 shrink-0" /> <span className="truncate">{s.email}</span>
+                                </button>
+                              </div>
+                              <Badge className="shrink-0">{s.credits} to schedule</Badge>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              }
+
               const matches = lessons.filter((l) => {
                 if (l.status === "cancelled") return false;
                 const t = new Date(l.scheduled_at).getTime();
@@ -351,25 +423,7 @@ export default function TeacherDashboard() {
                       ? "No upcoming lessons booked yet."
                       : "No completed lessons yet."
                   }
-                  headerExtra={
-                    <div className="flex flex-col gap-2 sm:flex-row">
-                      <Input
-                        placeholder="Filter by student name…"
-                        value={studentNameFilter}
-                        onChange={(e) => setStudentNameFilter(e.target.value)}
-                        className="w-full sm:w-[200px]"
-                      />
-                      <Select value={lessonsFilter} onValueChange={(v) => setLessonsFilter(v as typeof lessonsFilter)}>
-                        <SelectTrigger className="w-full sm:w-[180px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="upcoming">Upcoming</SelectItem>
-                          <SelectItem value="completed">Completed</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  }
+                  headerExtra={controls}
                 />
               );
             })()}
