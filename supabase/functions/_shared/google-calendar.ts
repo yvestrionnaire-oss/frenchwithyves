@@ -10,10 +10,29 @@
 //   GOOGLE_REFRESH_TOKEN  - refresh token captured during one-time consent
 //
 // All calendar operations run as the Google account that granted consent
-// (Yves's account), against its primary calendar.
+// (Yves's account). Lesson events are written to the calendar returned by
+// teachingCalendarPathId() — primary by default, or a secondary calendar when
+// TEACHING_CALENDAR_ID is set (see below).
 
 const GOOGLE_API = "https://www.googleapis.com/calendar/v3";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
+
+/**
+ * Calendar id that lesson events are created/updated/deleted on, already
+ * URL-encoded so it is safe to drop straight into a `/calendars/<id>/...` path.
+ *
+ * Defaults to "primary". Set the TEACHING_CALENDAR_ID secret to a secondary
+ * calendar's id (e.g. the "French Classes" calendar that Verbling's Google
+ * Calendar sync watches) so that every lesson booked on the site lands there
+ * and automatically blocks the matching slot on Verbling — preventing
+ * double-bookings without any manual step. Availability checks (get-busy-times)
+ * scan ALL calendars, so they keep seeing these events regardless of this
+ * setting.
+ */
+export function teachingCalendarPathId(): string {
+  const id = Deno.env.get("TEACHING_CALENDAR_ID")?.trim();
+  return id ? encodeURIComponent(id) : "primary";
+}
 
 export class GoogleCalendarUnconfigured extends Error {
   constructor() {
