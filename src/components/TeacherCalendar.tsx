@@ -11,6 +11,7 @@ import { ChevronLeft, ChevronRight, Loader2, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
+import { initialsFromName } from "@/components/LessonsView";
 import { cn } from "@/lib/utils";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -270,7 +271,11 @@ export function TeacherCalendar({
                       {isLessonStart && (
                         <div className="flex items-center justify-center gap-1 px-1 py-0.5 text-[10px] leading-tight">
                           <Video className="h-3 w-3 shrink-0" />
-                          <span className="truncate">{student?.full_name ?? "Lesson"}</span>
+                          {/* Initials only (e.g. "DS") so a long student name can't
+                              stretch the calendar cell/column. Full name is on hover. */}
+                          <span className="truncate" title={student?.full_name ?? undefined}>
+                            {student ? initialsFromName(student.full_name) : "Lesson"}
+                          </span>
                         </div>
                       )}
                     </td>
