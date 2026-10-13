@@ -6,6 +6,7 @@ import {
   getGoogleAccessToken,
   googleCalendarFetch,
   googleConfigured,
+  teachingCalendarPathId,
 } from "../_shared/google-calendar.ts";
 
 const corsHeaders = {
@@ -132,7 +133,7 @@ Deno.serve(async (req) => {
       try {
         const resp = await googleCalendarFetch(
           accessToken,
-          `/calendars/primary/events?conferenceDataVersion=1&sendUpdates=all`,
+          `/calendars/${teachingCalendarPathId()}/events?conferenceDataVersion=1&sendUpdates=all`,
           {
             method: "POST",
             body: JSON.stringify(eventBody),

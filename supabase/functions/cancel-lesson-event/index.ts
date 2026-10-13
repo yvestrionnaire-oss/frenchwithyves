@@ -4,6 +4,7 @@ import {
   getGoogleAccessToken,
   googleCalendarFetch,
   googleConfigured,
+  teachingCalendarPathId,
 } from "../_shared/google-calendar.ts";
 
 const corsHeaders = {
@@ -81,7 +82,7 @@ Deno.serve(async (req) => {
     const accessToken = await getGoogleAccessToken();
     const resp = await googleCalendarFetch(
       accessToken,
-      `/calendars/primary/events/${lesson.google_event_id}?sendUpdates=all`,
+      `/calendars/${teachingCalendarPathId()}/events/${lesson.google_event_id}?sendUpdates=all`,
       { method: "DELETE" },
     );
 
