@@ -28,7 +28,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { LessonsView, type LessonItem, hueFromString } from "@/components/LessonsView";
+import { LessonsView, type LessonItem, hueFromString, isLessonOver } from "@/components/LessonsView";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID as string;
@@ -214,10 +214,9 @@ export default function StudentDashboard() {
   }
 
   const past = useMemo(
-    () =>
-      lessons.filter(
-        (l) => l.status !== "cancelled" && new Date(l.scheduled_at).getTime() <= Date.now(),
-      ),
+    // "Lessons completed" counts only lessons that are actually over (end time
+    // reached), so a class in progress isn't counted as done.
+    () => lessons.filter((l) => l.status !== "cancelled" && isLessonOver(l)),
     [lessons],
   );
   const activeRequests = requests.filter((r) => r.status !== "cancelled");
@@ -226,16 +225,13 @@ export default function StudentDashboard() {
 
   // Build LessonItem[] for the unified view, filtered by the dropdown
   const filteredLessonItems: LessonItem[] = useMemo(() => {
-    const now = Date.now();
     const matches = lessons.filter((l) => {
       if (l.status === "cancelled") return false;
-      const t = new Date(l.scheduled_at).getTime();
-      // Use the lesson's END time so a class in progress stays under "Upcoming"
-      // until it actually finishes (not the moment it starts).
-      const endT = t + (l.duration_minutes ?? 60) * 60_000;
-      if (lessonsFilter === "upcoming") return l.status === "scheduled" && endT > now;
-      if (lessonsFilter === "completed")
-        return l.status === "completed" || (l.status === "scheduled" && endT <= now);
+      // Bucket by whether the lesson is actually over (shared helper: end time +
+      // grace, or an explicit completed status) — so an in-progress class stays
+      // under "Upcoming" and keeps its Join link until it truly finishes.
+      if (lessonsFilter === "upcoming") return !isLessonOver(l);
+      if (lessonsFilter === "completed") return isLessonOver(l);
       return false;
     });
     matches.sort((a, b) => {

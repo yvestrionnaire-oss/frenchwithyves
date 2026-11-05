@@ -34,7 +34,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { TeacherCalendar, type CalendarMode } from "@/components/TeacherCalendar";
-import { LessonsView, type LessonItem, hueFromString, initialsFromName } from "@/components/LessonsView";
+import { LessonsView, type LessonItem, hueFromString, initialsFromName, isLessonOver } from "@/components/LessonsView";
 import { TeacherRescheduleDialog } from "@/components/TeacherRescheduleDialog";
 import { EarningsSection } from "@/components/teacher/EarningsSection";
 import { cn } from "@/lib/utils";
@@ -323,7 +323,6 @@ export default function TeacherDashboard() {
           <div className="lg:col-span-2">
             <h2 className="mb-3 text-xl font-semibold">Lessons</h2>
             {(() => {
-              const now = Date.now();
               const nameQuery = studentNameFilter.trim().toLowerCase();
 
               const controls = (
@@ -385,12 +384,10 @@ export default function TeacherDashboard() {
 
               const matches = lessons.filter((l) => {
                 if (l.status === "cancelled") return false;
-                const t = new Date(l.scheduled_at).getTime();
-                // Use the lesson's END time so a class in progress stays under
-                // "Upcoming" until it actually finishes (not the moment it starts).
-                const endT = t + (l.duration_minutes ?? 60) * 60_000;
-                if (lessonsFilter === "upcoming") return l.status === "scheduled" && endT > now;
-                return l.status === "completed" || (l.status === "scheduled" && endT <= now);
+                // Bucket by whether the lesson is actually over (shared helper:
+                // end time + grace, or an explicit completed status) — an
+                // in-progress class stays under "Upcoming" and keeps its Join link.
+                return lessonsFilter === "upcoming" ? !isLessonOver(l) : isLessonOver(l);
               }).filter((l) => {
                 if (!nameQuery) return true;
                 const p = profileMap.get(l.student_id);

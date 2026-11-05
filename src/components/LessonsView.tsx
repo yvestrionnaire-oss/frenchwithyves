@@ -127,8 +127,16 @@ function ListView({ lessons, onReschedule, onCancel, rescheduleLabel, emptyText,
 
 function LessonRow({ lesson, onReschedule, onCancel, rescheduleLabel }: { lesson: LessonItem; onReschedule?: (id: string) => void; onCancel?: (id: string) => void; rescheduleLabel: string }) {
   const d = new Date(lesson.scheduled_at);
-  const isPast = d.getTime() < Date.now();
   const time = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  // A lesson is only "over" when it's actually finished (end time + grace, or an
+  // explicit completed/cancelled status) — NOT the instant its start time passes.
+  // This keeps the Join link available to a student who connects late, and stops
+  // an in-progress class from being mislabelled "Completed" (see Ryan, 2:05 join).
+  const over = isLessonOver(lesson);
+  const started = d.getTime() <= Date.now();
+  // Reschedule/cancel are only offered before the class starts; joining stays
+  // open right through the live window.
+  const canJoin = Boolean(lesson.meet_link) && !over;
   return (
     <Card className="overflow-hidden border-l-4 border-l-primary">
       <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
@@ -140,7 +148,13 @@ function LessonRow({ lesson, onReschedule, onCancel, rescheduleLabel }: { lesson
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <Badge variant={isPast ? "secondary" : "default"}>{isPast ? "Completed" : "Scheduled"}</Badge>
+            {over ? (
+              <Badge variant="secondary">Completed</Badge>
+            ) : started ? (
+              <Badge className="bg-emerald-600 hover:bg-emerald-600">In progress</Badge>
+            ) : (
+              <Badge variant="default">Scheduled</Badge>
+            )}
           </div>
           <div className="mt-1 text-lg font-semibold">{time}</div>
           <div className="text-xs text-muted-foreground">
@@ -148,19 +162,19 @@ function LessonRow({ lesson, onReschedule, onCancel, rescheduleLabel }: { lesson
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {lesson.meet_link && !isPast && (
-            <Button asChild variant="outline" size="sm">
-              <a href={lesson.meet_link} target="_blank" rel="noreferrer">
+          {canJoin && (
+            <Button asChild variant={started ? "default" : "outline"} size="sm">
+              <a href={lesson.meet_link!} target="_blank" rel="noreferrer">
                 <Video className="h-4 w-4" /> Join
               </a>
             </Button>
           )}
-          {!isPast && onReschedule && (
+          {!started && onReschedule && (
             <Button variant="outline" size="sm" onClick={() => onReschedule(lesson.id)}>
               {rescheduleLabel}
             </Button>
           )}
-          {!isPast && onCancel && (
+          {!started && onCancel && (
             <Button variant="ghost" size="sm" onClick={() => onCancel(lesson.id)}>
               Cancel
             </Button>
@@ -262,6 +276,31 @@ function MonthCalendar({ lessons }: { lessons: LessonItem[] }) {
       </div>
     </Card>
   );
+}
+
+// Minutes after a lesson's scheduled end during which it still counts as "live":
+// the Join link stays available and it isn't marked Completed yet. Covers a
+// student joining late or a class that runs a little over.
+export const LESSON_GRACE_MIN = 15;
+
+/** UTC ms of a lesson's scheduled end. */
+export function lessonEndMs(l: { scheduled_at: string; duration_minutes: number | null }): number {
+  return new Date(l.scheduled_at).getTime() + (l.duration_minutes ?? 60) * 60_000;
+}
+
+/**
+ * Whether a lesson is finished. True when it's explicitly completed/cancelled,
+ * or once its end time plus the grace window has passed. Crucially this is based
+ * on the END time, not the start — so a lesson stays joinable (and out of the
+ * "Completed" bucket) while it's actually running. Both dashboards and the row
+ * renderer share this one definition so they can never disagree.
+ */
+export function isLessonOver(
+  l: { scheduled_at: string; duration_minutes: number | null; status: string },
+  now: number = Date.now(),
+): boolean {
+  if (l.status === "cancelled" || l.status === "completed") return true;
+  return now >= lessonEndMs(l) + LESSON_GRACE_MIN * 60_000;
 }
 
 // Helpers exported for callers
