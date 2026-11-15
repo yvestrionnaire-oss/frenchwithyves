@@ -62,7 +62,7 @@ type Lesson = {
 type StudentRow = { id: string; full_name: string | null; email: string | null; credits: number; lessonsCount: number };
 type Notification = {
   id: string;
-  kind: "request_created" | "lesson_cancelled" | "lesson_rescheduled";
+  kind: "request_created" | "lesson_booked" | "lesson_cancelled" | "lesson_rescheduled";
   student_id: string;
   lesson_id: string | null;
   request_id: string | null;
@@ -447,6 +447,10 @@ export default function TeacherDashboard() {
                     const isUnread = !n.read_at;
                     let label = "";
                     if (n.kind === "request_created") label = `${profile?.full_name ?? "Student"} requested a package`;
+                    else if (n.kind === "lesson_booked") {
+                      const when = typeof n.payload?.scheduled_at === "string" ? n.payload.scheduled_at : null;
+                      label = `${profile?.full_name ?? "Student"} booked a lesson${when ? ` for ${fmtDateTime(when)}` : ""}`;
+                    }
                     else if (n.kind === "lesson_cancelled") label = `${profile?.full_name ?? "Student"} cancelled a lesson`;
                     else if (n.kind === "lesson_rescheduled") label = `${profile?.full_name ?? "Student"} rescheduled a lesson`;
                     return (
